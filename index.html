@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>IPC_SIM_KERNEL // Sketch Mode</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-color: #f3f4f6;
+    --ink: #000000;
+    --paper: #ffffff;
+    --shadow-offset: 5px;
+  }
+
+  body { 
+    background-color: var(--bg-color); 
+    background-image: radial-gradient(var(--ink) 1px, transparent 1px);
+    background-size: 20px 20px;
+    font-family: 'Space Mono', monospace;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* --- NEUBRUTALISM COMPONENTS --- */
+  .sketch-box {
+    background: var(--paper);
+    border: 3px solid var(--ink);
+    box-shadow: var(--shadow-offset) var(--shadow-offset) 0px var(--ink);
+  }
+
+  .sketch-btn {
+    border: 3px solid var(--ink);
+    box-shadow: 3px 3px 0px var(--ink);
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: transform 0.1s, box-shadow 0.1s;
+    cursor: pointer;
+  }
+  .sketch-btn:active {
+    transform: translate(3px, 3px);
+    box-shadow: 0px 0px 0px var(--ink);
+  }
+
+  .sketch-input {
+    border: 3px solid var(--ink);
+    background: #f9fafb;
+    outline: none;
+    font-family: 'Space Mono', monospace;
+    font-weight: bold;
+  }
+  .sketch-input:focus { background: #eef2ff; }
+
+  /* --- SVG STYLES --- */
+  .node { cursor: grab; transition: opacity 0.2s; }
+  .node:active { cursor: grabbing; }
+  .node circle, .node rect, .node path {
+    stroke: var(--ink);
+    stroke-width: 3px;
+    filter: drop-shadow(3px 3px 0px rgba(0,0,0,0.5));
+  }
+  
+  /* Packet Animation Class */
+  .packet { stroke-width: 2px !important; filter: none !important; }
+
+  /* Log Scrollbar */
+  ::-webkit-scrollbar { width: 8px; border-left: 2px solid black; }
+  ::-webkit-scrollbar-thumb { background: black; }
+</style>
+</head>
+<body class="h-screen flex flex-col p-4 gap-4">
+
+  <div class="flex justify-between items-center bg-white border-4 border-black p-3 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] z-10">
+    <div class="flex items-center gap-3">
+      <div class="bg-black text-white px-3 py-1 font-bold transform -rotate-1 text-2xl font-['Permanent_Marker']">IPC_KERNEL_SIM</div>
+      <div class="bg-indigo-400 border-2 border-black px-2 py-0.5 text-xs font-bold">SECURE MESSAGING</div>
+    </div>
+    <button onclick="init()" class="sketch-btn bg-gray-200 px-4 py-1 hover:bg-white text-sm">REBOOT SYSTEM</button>
+  </div>
+
+  <div class="flex-1 flex gap-4 min-h-0">
+    
+    <div class="flex-1 relative border-4 border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+      
+      <div class="absolute top-0 left-0 p-4 pointer-events-none opacity-60">
+        <h3 class="font-bold underline">KERNEL SPACE</h3>
+        <p class="text-xs">Visualizing message routing & permission checks.</p>
+      </div>
+
+      <svg id="stage" class="w-full h-full">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="28" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="black" />
+          </marker>
+        </defs>
+        
+        <g id="kernelNode" transform="translate(450, 300)">
+          <path d="M-40,-30 L40,-30 L50,0 L40,30 L-40,30 L-50,0 Z" fill="#6366f1" stroke="black" stroke-width="3"></path>
+          <text text-anchor="middle" y="5" font-weight="bold" fill="white" font-size="12">KERNEL</text>
+        </g>
+
+        <g id="connections"></g>
+        <g id="elements"></g>
+      </svg>
+    </div>
+
+    <div class="w-80 flex flex-col gap-4">
+      
+      <div class="sketch-box p-4 flex flex-col gap-4 bg-white">
+        <div class="bg-black text-white text-center font-bold py-1 mb-1">COMMAND DECK</div>
+        
+        <div class="border-b-2 border-black border-dashed pb-4">
+          <label class="block text-xs font-bold mb-2">1. PROCESS MANAGER</label>
+          <div class="flex gap-2">
+             <select id="forkTarget" class="sketch-input w-full p-2 text-sm"></select>
+             <button id="btnFork" class="sketch-btn bg-yellow-400 px-3 hover:bg-yellow-300 text-lg" title="Fork Process">⑂</button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold mb-2">2. IPC TRANSMITTER</label>
+          
+          <div class="space-y-2">
+            <div>
+              <span class="text-[10px] uppercase text-gray-500">Sender</span>
+              <select id="msgSender" class="sketch-input w-full p-2 text-sm"></select>
+            </div>
+            
+            <div class="flex justify-center text-xl font-bold">↓</div>
+
+            <div>
+              <span class="text-[10px] uppercase text-gray-500">Receiver</span>
+              <select id="msgReceiver" class="sketch-input w-full p-2 text-sm"></select>
+            </div>
+
+            <div>
+              <span class="text-[10px] uppercase text-gray-500">Syscall Type</span>
+              <select id="msgType" class="sketch-input w-full p-2 text-sm">
+                <option value="READ">IPC_READ (All)</option>
+                <option value="WRITE">IPC_WRITE (User+)</option>
+                <option value="KILL">IPC_KILL (Root Only)</option>
+              </select>
+            </div>
+
+            <button id="btnSend" class="sketch-btn w-full bg-emerald-400 py-3 mt-2 hover:bg-emerald-300 flex items-center justify-center gap-2">
+              <span>TRANSMIT PACKET</span>
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-1 bg-black border-4 border-black p-3 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col overflow-hidden">
+        <div class="text-gray-500 text-xs mb-2 border-b border-gray-800 pb-1 flex justify-between">
+          <span>/var/log/kernel.log</span>
+          <span>● LIVE</span>
+        </div>
+        <div id="terminal" class="flex-1 font-mono text-xs overflow-y-auto space-y-1"></div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+/* =========================================
+   IPC SIMULATOR LOGIC
+   ========================================= */
+
+const svgNS = "http://www.w3.org/2000/svg";
+const stage = document.getElementById('stage');
+const elementsG = document.getElementById('elements');
+const connectionsG = document.getElementById('connections');
+const terminal = document.getElementById('terminal');
+
+// State
+let processes = [];
+let nextPid = 100;
+
+const KERNEL_POS = { x: 450, y: 300 };
+
+const ROLES = {
+  'GUEST': { level: 1, color: '#a7f3d0' }, // Green
+  'USER':  { level: 2, color: '#facc15' }, // Yellow
+  'ROOT':  { level: 3, color: '#f87171' }  // Red
+};
+
+const PERMISSIONS = {
+  'READ': 1,
+  'WRITE': 2,
+  'KILL': 3
+};
+
+function log(msg, type='info') {
+  const line = document.createElement('div');
+  const ts = new Date().toLocaleTimeString('en-US',{hour12:false}).split(' ')[0];
+  
+  let color = 'text-gray-300';
+  if(type === 'error') color = 'text-red-400 font-bold';
+  if(type === 'success') color = 'text-green-400';
+  if(type === 'warn') color = 'text-yellow-400';
+
+  line.innerHTML = `<span class="text-gray-600 mr-2">[${ts}]</span><span class="${color}">${msg}</span>`;
+  terminal.appendChild(line);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+/* --- INIT --- */
+function init() {
+  processes = [];
+  elementsG.innerHTML = '';
+  connectionsG.innerHTML = '';
+  nextPid = 100;
+  terminal.innerHTML = '';
+
+  log("Kernel booting...", "warn");
+  
+  // Spawn initial nodes
+  createProcess('ROOT_1', 'ROOT', 450, 100);
+  createProcess('USER_1', 'USER', 200, 300);
+  createProcess('GUEST_1', 'GUEST', 700, 300);
+
+  updateUI();
+  log("System Ready. Waiting for IPC calls.", "success");
+}
+
+/* --- PROCESS MANAGEMENT --- */
+function createProcess(name, role, x, y) {
+  const pid = nextPid++;
+  const proc = { id: pid, name, role, x, y, el: null };
+  processes.push(proc);
+  renderProcess(proc);
+  return proc;
+}
+
+function forkProcess() {
+  const parentId = parseInt(document.getElementById('forkTarget').value);
+  const parent = processes.find(p => p.id === parentId);
+  
+  if(!parent) return;
+
+  // Visual offset
+  const offsetX = (Math.random() - 0.5) * 150;
+  const offsetY = (Math.random() - 0.5) * 150 + 80;
+  
+  // Inherit Role, Create Name
+  const childName = `${parent.role}_${nextPid}`;
+  const child = createProcess(childName, parent.role, parent.x + offsetX, parent.y + offsetY);
+
+  log(`sys_fork(): PID ${parent.id} spawned PID ${child.id} (${child.role})`, "info");
+  
+  // Draw lineage line temporarily
+  drawTempLine(parent, child, '#9ca3af', 1000);
+  updateUI();
+}
+
+/* --- IPC LOGIC --- */
+async function sendIPC() {
+  const srcId = parseInt(document.getElementById('msgSender').value);
+  const destId = parseInt(document.getElementById('msgReceiver').value);
+  const type = document.getElementById('msgType').value;
+
+  const src = processes.find(p => p.id === srcId);
+  const dest = processes.find(p => p.id === destId);
+
+  if(!src || !dest) return;
+  if(srcId === destId) { log("Error: Loopback not supported.", "error"); return; }
+
+  log(`IPC_REQ: ${src.name} -> ${dest.name} [${type}]`);
+
+  // 1. Packet: Source -> Kernel
+  await animatePacket(src, {x: KERNEL_POS.x, y: KERNEL_POS.y}, 'black');
+
+  // 2. Kernel Check
+  const senderLevel = ROLES[src.role].level;
+  const requiredLevel = PERMISSIONS[type];
+
+  if(senderLevel >= requiredLevel) {
+    // ALLOWED
+    log(`KERNEL: Permission Granted. Relaying...`, "success");
+    flashKernel('green');
+    // 3. Packet: Kernel -> Dest
+    await animatePacket({x: KERNEL_POS.x, y: KERNEL_POS.y}, dest, '#22c55e'); // Green packet
+    log(`IPC_ACK: Message delivered to PID ${dest.id}`, "success");
+    
+    // Visual effect on receiver
+    pulseNode(dest);
+
+    if(type === 'KILL') {
+        log(`SIGKILL: PID ${dest.id} terminated by ROOT.`, "error");
+        killProcess(dest);
+    }
+
+  } else {
+    // DENIED
+    log(`KERNEL: Permission Denied! ${src.role} cannot perform ${type}`, "error");
+    flashKernel('red');
+    
+    // Bounce back animation
+    await animatePacket({x: KERNEL_POS.x, y: KERNEL_POS.y}, src, '#ef4444');
+  }
+}
+
+function killProcess(proc) {
+    // Remove from array
+    processes = processes.filter(p => p.id !== proc.id);
+    // Remove from DOM
+    if(proc.el) proc.el.remove();
+    updateUI();
+}
+
+/* --- RENDERING --- */
+function renderProcess(p) {
+  const g = document.createElementNS(svgNS, 'g');
+  g.setAttribute('transform', `translate(${p.x},${p.y})`);
+  g.setAttribute('class', 'node');
+  g.id = `proc-${p.id}`;
+
+  // Style based on Role
+  const color = ROLES[p.role].color;
+
+  // Circle body
+  const c = document.createElementNS(svgNS, 'circle');
+  c.setAttribute('r', 28);
+  c.setAttribute('fill', color);
+  
+  // PID Tag
+  const rect = document.createElementNS(svgNS, 'rect');
+  rect.setAttribute('x', -20); rect.setAttribute('y', 20);
+  rect.setAttribute('width', 40); rect.setAttribute('height', 16);
+  rect.setAttribute('fill', 'white');
+  rect.setAttribute('rx', 4);
+
+  // Text
+  const tName = document.createElementNS(svgNS, 'text');
+  tName.setAttribute('y', 5); tName.setAttribute('text-anchor', 'middle');
+  tName.setAttribute('font-weight', 'bold'); tName.setAttribute('font-size', '11');
+  tName.textContent = p.name;
+
+  const tPid = document.createElementNS(svgNS, 'text');
+  tPid.setAttribute('y', 32); tPid.setAttribute('text-anchor', 'middle');
+  tPid.setAttribute('font-size', '9'); tPid.setAttribute('font-family', 'monospace');
+  tPid.textContent = p.id;
+
+  g.appendChild(c);
+  g.appendChild(rect);
+  g.appendChild(tName);
+  g.appendChild(tPid);
+
+  elementsG.appendChild(g);
+  p.el = g;
+  makeDraggable(g, p);
+}
+
+/* --- ANIMATIONS --- */
+function animatePacket(startPos, endPos, color) {
+  return new Promise(resolve => {
+    const pkt = document.createElementNS(svgNS, 'circle');
+    pkt.setAttribute('r', 6);
+    pkt.setAttribute('fill', color);
+    pkt.setAttribute('stroke', 'black');
+    pkt.setAttribute('stroke-width', '2');
+    connectionsG.appendChild(pkt);
+
+    // Get coords
+    const x1 = startPos.x || startPos.x; // handle raw object or process obj
+    const y1 = startPos.y || startPos.y;
+    const x2 = endPos.x || endPos.x;
+    const y2 = endPos.y || endPos.y;
+
+    const startTime = performance.now();
+    const duration = 600; // ms
+
+    function frame(time) {
+      const progress = Math.min((time - startTime) / duration, 1);
+      const cx = x1 + (x2 - x1) * progress;
+      const cy = y1 + (y2 - y1) * progress;
+      
+      pkt.setAttribute('cx', cx);
+      pkt.setAttribute('cy', cy);
+
+      if(progress < 1) requestAnimationFrame(frame);
+      else {
+        pkt.remove();
+        resolve();
+      }
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+function flashKernel(color) {
+  const k = document.getElementById('kernelNode').querySelector('path');
+  const original = k.getAttribute('fill');
+  k.setAttribute('fill', color === 'red' ? '#ef4444' : '#22c55e');
+  setTimeout(() => k.setAttribute('fill', original), 400);
+}
+
+function pulseNode(proc) {
+    if(!proc.el) return;
+    const c = proc.el.querySelector('circle');
+    c.setAttribute('stroke-width', '6');
+    setTimeout(() => c.setAttribute('stroke-width', '3'), 300);
+}
+
+function drawTempLine(p1, p2, color, duration) {
+  const line = document.createElementNS(svgNS, 'line');
+  line.setAttribute('x1', p1.x); line.setAttribute('y1', p1.y);
+  line.setAttribute('x2', p2.x); line.setAttribute('y2', p2.y);
+  line.setAttribute('stroke', color);
+  line.setAttribute('stroke-width', '2');
+  line.setAttribute('stroke-dasharray', '5,5');
+  connectionsG.appendChild(line);
+  setTimeout(() => line.remove(), duration);
+}
+
+/* --- UI HELPERS --- */
+function updateUI() {
+  const forkSel = document.getElementById('forkTarget');
+  const sendSel = document.getElementById('msgSender');
+  const recvSel = document.getElementById('msgReceiver');
+  
+  // Preserve selections
+  const savedFork = forkSel.value;
+  const savedSend = sendSel.value;
+  const savedRecv = recvSel.value;
+
+  const options = processes.map(p => `<option value="${p.id}">${p.name} [${p.role}]</option>`).join('');
+  
+  forkSel.innerHTML = options;
+  sendSel.innerHTML = options;
+  recvSel.innerHTML = options;
+
+  if(savedFork) forkSel.value = savedFork;
+  if(savedSend) sendSel.value = savedSend;
+  if(savedRecv) recvSel.value = savedRecv;
+}
+
+function makeDraggable(el, obj) {
+  let isDown = false;
+  el.addEventListener('pointerdown', (e) => {
+    isDown = true;
+    el.setPointerCapture(e.pointerId);
+    // Bring to front
+    elementsG.appendChild(el); 
+  });
+  el.addEventListener('pointermove', (e) => {
+    if(!isDown) return;
+    obj.x += e.movementX;
+    obj.y += e.movementY;
+    el.setAttribute('transform', `translate(${obj.x},${obj.y})`);
+  });
+  el.addEventListener('pointerup', (e) => {
+    isDown = false;
+    el.releasePointerCapture(e.pointerId);
+  });
+}
+
+/* --- EVENT BINDINGS --- */
+document.getElementById('btnFork').onclick = forkProcess;
+document.getElementById('btnSend').onclick = sendIPC;
+
+// Start
+init();
+
+</script>
+</body>
+</html>
