@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPC Shared Memory Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+        
+        /* Glassmorphism utilities */
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-[#0f172a] text-white selection:bg-indigo-500/30 overflow-hidden">
+
+    <!-- Background Gradients -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 rounded-full blur-[120px]"></div>
+    </div>
+
+    <div class="relative z-10 container mx-auto p-4 md:p-8 h-screen flex flex-col gap-6">
+        
+        <!-- Header -->
+        <header class="flex items-center gap-4 pb-4 border-b border-white/10 shrink-0">
+            <div class="p-3 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
+                <i data-lucide="cpu" class="w-8 h-8 text-indigo-400"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
+                    IPC Shared Memory Simulation
+                </h1>
+                <p class="text-white/40 text-sm">Priority-based scheduling with Aging & Semaphores</p>
+            </div>
+        </header>
+
+        <!-- Main Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0">
+            
+            <!-- Left Column: Queues -->
+            <div class="lg:col-span-3 flex flex-col gap-4 min-h-0">
+                <!-- Read Queue -->
+                <div class="glass rounded-xl p-4 flex flex-col h-1/3 border-blue-500/30 shadow-blue-900/20">
+                    <div class="flex items-center gap-2 mb-4 text-white/90 shrink-0">
+                        <i data-lucide="layers" class="w-5 h-5 text-blue-400"></i>
+                        <h2 class="text-lg font-semibold">Read Queue</h2>
+                        <span id="read-count-badge" class="ml-auto text-xs bg-white/10 px-2 py-1 rounded-full">0</span>
+                    </div>
+                    <div id="read-queue" class="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar"></div>
+                </div>
+
+                <!-- Write Queue -->
+                <div class="glass rounded-xl p-4 flex flex-col h-1/3 border-amber-500/30 shadow-amber-900/20">
+                    <div class="flex items-center gap-2 mb-4 text-white/90 shrink-0">
+                        <i data-lucide="pen-tool" class="w-5 h-5 text-amber-400"></i>
+                        <h2 class="text-lg font-semibold">Write Queue</h2>
+                        <span id="write-count-badge" class="ml-auto text-xs bg-white/10 px-2 py-1 rounded-full">0</span>
+                    </div>
+                    <div id="write-queue" class="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar"></div>
+                </div>
+
+                <!-- Erase Queue -->
+                <div class="glass rounded-xl p-4 flex flex-col h-1/3 border-red-500/30 shadow-red-900/20">
+                    <div class="flex items-center gap-2 mb-4 text-white/90 shrink-0">
+                        <i data-lucide="trash-2" class="w-5 h-5 text-red-400"></i>
+                        <h2 class="text-lg font-semibold">Erase Queue</h2>
+                        <span id="erase-count-badge" class="ml-auto text-xs bg-white/10 px-2 py-1 rounded-full">0</span>
+                    </div>
+                    <div id="erase-queue" class="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar"></div>
+                </div>
+            </div>
+
+            <!-- Middle Column: State & Controls -->
+            <div class="lg:col-span-6 flex flex-col gap-6">
+                <!-- Memory State -->
+                <div class="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 backdrop-blur-xl rounded-2xl p-6 border border-white/10 shadow-2xl shrink-0">
+                    <div class="flex items-center gap-3 mb-6">
+                        <i data-lucide="database" class="w-6 h-6 text-indigo-400"></i>
+                        <h2 class="text-xl font-bold text-white">Shared Memory State</h2>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="p-4 rounded-xl border bg-emerald-500/20 border-emerald-500/30 text-emerald-200 flex flex-col items-center justify-center">
+                            <div class="flex items-center gap-2 mb-1 opacity-80">
+                                <i data-lucide="lock" class="w-4 h-4"></i>
+                                <span class="text-xs font-medium uppercase tracking-wider">Semaphore</span>
+                            </div>
+                            <div class="text-3xl font-bold">
+                                <span id="val-semaphore">0</span>
+                                <span class="text-sm opacity-50 font-normal">/<span id="val-total">5</span></span>
+                            </div>
+                        </div>
+                        <div class="p-4 rounded-xl border bg-blue-500/20 border-blue-500/30 text-blue-200 flex flex-col items-center justify-center">
+                            <div class="flex items-center gap-2 mb-1 opacity-80">
+                                <i data-lucide="users" class="w-4 h-4"></i>
+                                <span class="text-xs font-medium uppercase tracking-wider">Readers</span>
+                            </div>
+                            <div id="val-readers" class="text-3xl font-bold">0</div>
+                        </div>
+                        <div class="p-4 rounded-xl border bg-amber-500/20 border-amber-500/30 text-amber-200 flex flex-col items-center justify-center">
+                            <div class="flex items-center gap-2 mb-1 opacity-80">
+                                <i data-lucide="users" class="w-4 h-4"></i>
+                                <span class="text-xs font-medium uppercase tracking-wider">Writers</span>
+                            </div>
+                            <div id="val-writers" class="text-3xl font-bold">0</div>
+                        </div>
+                        <div class="p-4 rounded-xl border bg-red-500/20 border-red-500/30 text-red-200 flex flex-col items-center justify-center">
+                            <div class="flex items-center gap-2 mb-1 opacity-80">
+                                <i data-lucide="users" class="w-4 h-4"></i>
+                                <span class="text-xs font-medium uppercase tracking-wider">Erasers</span>
+                            </div>
+                            <div id="val-erasers" class="text-3xl font-bold">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Visual Buffer -->
+                    <div class="mt-8">
+                        <div class="flex justify-between text-xs text-white/50 mb-2">
+                            <span>Buffer Usage</span>
+                            <span id="buffer-usage-text">0 / 5</span>
+                        </div>
+                        <div id="buffer-visual" class="h-4 bg-white/10 rounded-full overflow-hidden flex">
+                            <!-- Buffer segments injected here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Controls -->
+                <div class="glass rounded-xl p-6 border border-white/10 shadow-xl flex-1">
+                    <h3 class="text-lg font-semibold text-white mb-4">Controls</h3>
+                    
+                    <div class="space-y-6">
+                        <!-- Add Process -->
+                        <div class="space-y-3">
+                            <label class="text-xs text-white/50 uppercase tracking-wider font-medium">Add Process</label>
+                            <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg">
+                                <span class="text-sm text-white/70 pl-2">Priority:</span>
+                                <input type="number" id="priority-input" value="10" class="bg-transparent border-b border-white/20 text-white w-16 text-center focus:outline-none focus:border-indigo-500 transition-colors">
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button onclick="app.addProcess('READ')" class="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                    <i data-lucide="plus" class="w-4 h-4"></i> Read
+                                </button>
+                                <button onclick="app.addProcess('WRITE')" class="flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                    <i data-lucide="plus" class="w-4 h-4"></i> Write
+                                </button>
+                                <button onclick="app.addProcess('ERASE')" class="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                    <i data-lucide="plus" class="w-4 h-4"></i> Erase
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="h-px bg-white/10"></div>
+
+                        <!-- Signal -->
+                        <div class="space-y-3">
+                            <label class="text-xs text-white/50 uppercase tracking-wider font-medium">Manual Signal (Release)</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button onclick="app.signal('READ')" class="flex items-center justify-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 border border-blue-500/30 py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                    <i data-lucide="skip-forward" class="w-4 h-4"></i> Read
+                                </button>
+                                <button onclick="app.signal('WRITE')" class="flex items-center justify-center gap-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                    <i data-lucide="skip-forward" class="w-4 h-4"></i> Write
+                                </button>
+                                <button onclick="app.signal('ERASE')" class="flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30 py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                    <i data-lucide="skip-forward" class="w-4 h-4"></i> Erase
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Logs -->
+            <div class="lg:col-span-3 min-h-0">
+                <div class="bg-black/40 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden flex flex-col h-full">
+                    <div class="bg-white/5 p-3 flex items-center justify-between border-b border-white/10 shrink-0">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="terminal" class="w-4 h-4 text-white/60"></i>
+                            <span class="text-xs font-mono text-white/60 uppercase tracking-wider">System Logs</span>
+                        </div>
+                        <button onclick="app.clearLogs()" class="text-white/40 hover:text-white/80 transition-colors p-1 rounded hover:bg-white/10" title="Clear Logs">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                    <div id="log-container" class="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-1 custom-scrollbar">
+                        <div class="text-white/30 italic">System ready...</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- LOGIC SCRIPT -->
+    <script>
+        // --- MinMaxHeap Class ---
+        class MinMaxHeap {
+            constructor() {
+                this.nums = [];
+            }
+
+            modifyMin(num) {
+                if (this.nums.length === 0) return;
+                num += this.nums[0];
+                this.popMin();
+                this.push(num);
+            }
+
+            push(value) {
+                this.nums.push(value);
+                this.trickleUp(this.nums.length - 1);
+            }
+
+            getMin() {
+                if (this.isEmpty()) return -1;
+                return this.nums[0];
+            }
+
+            getMax() {
+                if (this.nums.length === 0) return -1;
+                if (this.nums.length === 1) return this.nums[0];
+                if (this.nums.length === 2) return this.nums[1];
+                return Math.max(this.nums[1], this.nums[2]);
+            }
+
+            popMin() {
+                if (this.isEmpty()) return;
+                this.nums[0] = this.nums[this.nums.length - 1];
+                this.nums.pop();
+                this.trickleDown(0);
+            }
+
+            popMax() {
+                if (this.isEmpty()) return;
+                if (this.nums.length === 1) {
+                    this.nums.pop();
+                    return;
+                }
+                if (this.nums.length === 2) {
+                    this.nums.pop();
+                    return;
+                }
+
+                let largest = 1;
+                if (this.nums[largest] < this.nums[2]) {
+                    largest = 2;
+                }
+                this.nums[largest] = this.nums[this.nums.length - 1];
+                this.nums.pop();
+                this.trickleDown(largest);
+            }
+
+            isEmpty() {
+                return this.nums.length === 0;
+            }
+
+            getElements() {
+                return [...this.nums];
+            }
+
+            trickleDown(ind) {
+                if (ind >= this.nums.length) return;
+                const level = Math.floor(Math.log2(ind + 1));
+                const leftChildInd = ind * 2 + 1;
+                const rightChildInd = ind * 2 + 2;
+
+                if (level & 1) { // Min level
+                    let largest = ind;
+                    if (leftChildInd < this.nums.length && this.nums[leftChildInd] > this.nums[largest]) largest = leftChildInd;
+                    if (rightChildInd < this.nums.length && this.nums[rightChildInd] > this.nums[largest]) largest = rightChildInd;
+                    if (largest !== ind) {
+                        [this.nums[largest], this.nums[ind]] = [this.nums[ind], this.nums[largest]];
+                        this.trickleDown(largest);
+                    }
+                } else { // Max level
+                    let smallest = ind;
+                    if (leftChildInd < this.nums.length && this.nums[leftChildInd] < this.nums[smallest]) smallest = leftChildInd;
+                    if (rightChildInd < this.nums.length && this.nums[rightChildInd] < this.nums[smallest]) smallest = rightChildInd;
+                    if (smallest !== ind) {
+                        [this.nums[smallest], this.nums[ind]] = [this.nums[ind], this.nums[smallest]];
+                        this.trickleDown(smallest);
+                    }
+                }
+
+                const firstLeft = leftChildInd * 2 + 1;
+                const secondLeft = rightChildInd * 2 + 1;
+                const firstRight = leftChildInd * 2 + 2;
+                const secondRight = rightChildInd * 2 + 2;
+
+                if (level & 1) {
+                    let largest = ind;
+                    if (firstLeft < this.nums.length && this.nums[largest] < this.nums[firstLeft]) largest = firstLeft;
+                    if (secondLeft < this.nums.length && this.nums[largest] < this.nums[secondLeft]) largest = secondLeft;
+                    if (firstRight < this.nums.length && this.nums[largest] < this.nums[firstRight]) largest = firstRight;
+                    if (secondRight < this.nums.length && this.nums[largest] < this.nums[secondRight]) largest = secondRight;
+                    if (largest !== ind) {
+                        [this.nums[largest], this.nums[ind]] = [this.nums[ind], this.nums[largest]];
+                        this.trickleDown(largest);
+                    }
+                } else {
+                    let smallest = ind;
+                    if (firstLeft < this.nums.length && this.nums[smallest] > this.nums[firstLeft]) smallest = firstLeft;
+                    if (secondLeft < this.nums.length && this.nums[smallest] > this.nums[secondLeft]) smallest = secondLeft;
+                    if (firstRight < this.nums.length && this.nums[smallest] > this.nums[firstRight]) smallest = firstRight;
+                    if (secondRight < this.nums.length && this.nums[smallest] > this.nums[secondRight]) smallest = secondRight;
+                    if (smallest !== ind) {
+                        [this.nums[smallest], this.nums[ind]] = [this.nums[ind], this.nums[smallest]];
+                        this.trickleDown(smallest);
+                    }
+                }
+            }
+
+            trickleUp(ind) {
+                if (ind <= 0) return;
+                const level = Math.floor(Math.log2(ind + 1));
+                let parentInd = Math.floor(ind / 2);
+                if (ind % 2 === 0) parentInd -= 1;
+
+                if (level & 1) {
+                    if (parentInd >= 0 && this.nums[ind] < this.nums[parentInd]) {
+                        [this.nums[parentInd], this.nums[ind]] = [this.nums[ind], this.nums[parentInd]];
+                        this.trickleUp(parentInd);
+                    }
+                } else {
+                    if (parentInd >= 0 && this.nums[ind] > this.nums[parentInd]) {
+                        [this.nums[parentInd], this.nums[ind]] = [this.nums[ind], this.nums[parentInd]];
+                        this.trickleUp(parentInd);
+                    }
+                }
+
+                let pparentInd = Math.floor(parentInd / 2);
+                if (parentInd % 2 === 0) pparentInd -= 1;
+
+                if (level & 1) {
+                    if (pparentInd >= 0 && this.nums[ind] > this.nums[pparentInd]) {
+                        [this.nums[pparentInd], this.nums[ind]] = [this.nums[ind], this.nums[pparentInd]];
+                        this.trickleUp(parentInd);
+                    }
+                } else {
+                    if (pparentInd >= 0 && this.nums[ind] < this.nums[pparentInd]) {
+                        [this.nums[pparentInd], this.nums[ind]] = [this.nums[ind], this.nums[pparentInd]];
+                        this.trickleUp(parentInd);
+                    }
+                }
+            }
+        }
+
+        // --- SharedMemory Class ---
+        class SharedMemory {
+            constructor(size = 5, agingFactor = 5) {
+                this.readCount = 0;
+                this.writeCount = 0;
+                this.eraseCount = 0;
+                this.semaphore = size;
+                this.bufferSize = size;
+                this.agingFactor = agingFactor;
+
+                this.readHeap = new MinMaxHeap();
+                this.writeHeap = new MinMaxHeap();
+                this.eraseHeap = new MinMaxHeap();
+
+                this.listeners = [];
+                this.logs = [];
+            }
+
+            subscribe(listener) {
+                this.listeners.push(listener);
+                this.notify();
+            }
+
+            notify() {
+                const state = {
+                    readCount: this.readCount,
+                    writeCount: this.writeCount,
+                    eraseCount: this.eraseCount,
+                    semaphore: this.semaphore,
+                    bufferSize: this.bufferSize,
+                    readHeap: this.readHeap.getElements(),
+                    writeHeap: this.writeHeap.getElements(),
+                    eraseHeap: this.eraseHeap.getElements(),
+                    logs: [...this.logs]
+                };
+                this.listeners.forEach(l => l(state));
+            }
+
+            log(message) {
+                console.log(message);
+                this.logs.push(message);
+                if (this.logs.length > 50) this.logs.shift();
+            }
+
+            clearLogs() {
+                this.logs = [];
+                this.notify();
+            }
+
+            read(priority) {
+                this.readHeap.push(priority);
+                this.log(`Request READ with priority ${priority}`);
+
+                if (this.semaphore <= 0) { this.notify(); return; }
+                if (this.semaphore > this.bufferSize) { this.notify(); return; }
+
+                if (!this.writeCount && !this.eraseCount) {
+                    this.readCount += 1;
+                    this.semaphore -= 1;
+                    this.log(`Allowed to read. Count = ${this.readCount}`);
+                    this.readHeap.popMax();
+
+                    if (!this.readHeap.isEmpty()) {
+                        this.readHeap.modifyMin(this.agingFactor);
+                        
+                        // Starvation Prevention Logic
+                        const nextReadPriority = this.readHeap.getMax();
+                        let canRead = true;
+                        if (!this.writeHeap.isEmpty() && nextReadPriority < this.writeHeap.getMax()) canRead = false;
+                        if (!this.eraseHeap.isEmpty() && nextReadPriority < this.eraseHeap.getMax()) canRead = false;
+
+                        if (canRead) {
+                            this.readHeap.popMax(); // Pop before recursive call
+                            this.read(nextReadPriority);
+                        }
+                    }
+                }
+                this.notify();
+            }
+
+            write(priority) {
+                this.writeHeap.push(priority);
+                this.log(`Request WRITE with priority ${priority}`);
+
+                if (this.semaphore <= 0) { this.notify(); return; }
+
+                if (!this.readCount && !this.writeCount && !this.eraseCount) {
+                    this.writeHeap.popMax();
+                    this.writeCount += 1;
+                    this.semaphore -= 1;
+                    this.log(`Allowed to write. Count = ${this.writeCount}`);
+
+                    if (!this.writeHeap.isEmpty()) {
+                        this.writeHeap.modifyMin(this.agingFactor);
+                    }
+                }
+                this.notify();
+            }
+
+            erase(priority) {
+                this.eraseHeap.push(priority);
+                this.log(`Request ERASE with priority ${priority}`);
+
+                if (this.semaphore <= 0) { this.notify(); return; }
+
+                if (!this.readCount && !this.writeCount && !this.eraseCount) {
+                    this.eraseHeap.popMax();
+                    this.eraseCount += 1;
+                    this.semaphore -= 1;
+                    this.log(`Allowed to erase. Count = ${this.eraseCount}`);
+
+                    if (!this.eraseHeap.isEmpty()) {
+                        this.eraseHeap.modifyMin(this.agingFactor);
+                    }
+                }
+                this.notify();
+            }
+
+            signalRead() {
+                if (this.readCount <= 0) {
+                    this.log("Error: No active readers to signal.");
+                    this.notify();
+                    return;
+                }
+                this.readCount -= 1;
+                this.semaphore += 1;
+                this.log(`Signal READ. Semaphore = ${this.semaphore}`);
+
+                if (this.readCount) {
+                    if (!this.readHeap.isEmpty()) {
+                        const num = this.readHeap.getMax();
+                        this.readHeap.popMax();
+                        this.read(num);
+                    }
+                } else {
+                    this.signalAll();
+                }
+                this.notify();
+            }
+
+            signalWrite() {
+                if (this.writeCount <= 0) {
+                    this.log("Error: No active writers to signal.");
+                    this.notify();
+                    return;
+                }
+                this.writeCount -= 1;
+                this.semaphore += 1;
+                this.log(`Signal WRITE. Semaphore = ${this.semaphore}`);
+                this.signalAll();
+                this.notify();
+            }
+
+            signalErase() {
+                if (this.eraseCount <= 0) {
+                    this.log("Error: No active erasers to signal.");
+                    this.notify();
+                    return;
+                }
+                this.eraseCount -= 1;
+                this.semaphore += 1;
+                this.log(`Signal ERASE. Semaphore = ${this.semaphore}`);
+                this.signalAll();
+                this.notify();
+            }
+
+            signalAll() {
+                if (!this.readHeap.isEmpty()) {
+                    const re = this.readHeap.getMax();
+                    if ((this.writeHeap.isEmpty()) || (!this.writeHeap.isEmpty() && re >= this.writeHeap.getMax())) {
+                        if ((this.eraseHeap.isEmpty()) || (!this.eraseHeap.isEmpty() && re >= this.eraseHeap.getMax())) {
+                            this.readHeap.popMax();
+                            this.read(re);
+                            return;
+                        }
+                    }
+                }
+
+                if (!this.writeHeap.isEmpty()) {
+                    const wr = this.writeHeap.getMax();
+                    if ((this.readHeap.isEmpty()) || (!this.readHeap.isEmpty() && wr >= this.readHeap.getMax())) {
+                        if ((this.eraseHeap.isEmpty()) || (!this.eraseHeap.isEmpty() && wr >= this.eraseHeap.getMax())) {
+                            this.writeHeap.popMax();
+                            this.write(wr);
+                        }
+                    }
+                }
+
+                if (!this.eraseHeap.isEmpty()) {
+                    const er = this.eraseHeap.getMax();
+                    if ((this.readHeap.isEmpty()) || (!this.readHeap.isEmpty() && er >= this.readHeap.getMax())) {
+                        if ((this.writeHeap.isEmpty()) || (!this.writeHeap.isEmpty() && er >= this.writeHeap.getMax())) {
+                            this.eraseHeap.popMax();
+                            this.erase(er);
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- UI Logic ---
+        const sharedMemory = new SharedMemory(5, 5);
+
+        const app = {
+            addProcess: (type) => {
+                const priority = parseInt(document.getElementById('priority-input').value) || 0;
+                if (type === 'READ') sharedMemory.read(priority);
+                if (type === 'WRITE') sharedMemory.write(priority);
+                if (type === 'ERASE') sharedMemory.erase(priority);
+            },
+            signal: (type) => {
+                if (type === 'READ') sharedMemory.signalRead();
+                if (type === 'WRITE') sharedMemory.signalWrite();
+                if (type === 'ERASE') sharedMemory.signalErase();
+            },
+            clearLogs: () => {
+                sharedMemory.clearLogs();
+            }
+        };
+
+        function renderQueue(elementId, heap) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = '';
+            if (heap.length === 0) {
+                container.innerHTML = '<div class="text-center text-sm text-white/40 italic py-8">Queue is empty</div>';
+                return;
+            }
+            heap.forEach(priority => {
+                const div = document.createElement('div');
+                div.className = "bg-white/10 rounded-lg p-3 flex items-center justify-between group hover:bg-white/20 transition-colors animate-in fade-in slide-in-from-bottom-2 duration-300";
+                div.innerHTML = `
+                    <span class="text-sm font-medium text-white/70">Process</span>
+                    <span class="font-bold text-white bg-white/20 px-2 py-0.5 rounded text-sm">P: ${priority}</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function renderState(state) {
+            // Update Queues
+            renderQueue('read-queue', state.readHeap);
+            renderQueue('write-queue', state.writeHeap);
+            renderQueue('erase-queue', state.eraseHeap);
+
+            // Update Badges
+            document.getElementById('read-count-badge').textContent = state.readHeap.length;
+            document.getElementById('write-count-badge').textContent = state.writeHeap.length;
+            document.getElementById('erase-count-badge').textContent = state.eraseHeap.length;
+
+            // Update Stats
+            document.getElementById('val-semaphore').textContent = state.semaphore;
+            document.getElementById('val-total').textContent = state.bufferSize;
+            document.getElementById('val-readers').textContent = state.readCount;
+            document.getElementById('val-writers').textContent = state.writeCount;
+            document.getElementById('val-erasers').textContent = state.eraseCount;
+
+            // Update Buffer Visual
+            const used = state.bufferSize - state.semaphore;
+            document.getElementById('buffer-usage-text').textContent = `${used} / ${state.bufferSize}`;
+            const bufferContainer = document.getElementById('buffer-visual');
+            bufferContainer.innerHTML = '';
+            for (let i = 0; i < state.bufferSize; i++) {
+                const div = document.createElement('div');
+                div.className = `flex-1 border-r border-black/20 last:border-0 transition-all duration-500 ${i < used ? 'bg-indigo-400 opacity-100' : 'bg-white opacity-20'}`;
+                bufferContainer.appendChild(div);
+            }
+
+            // Update Logs
+            const logContainer = document.getElementById('log-container');
+            logContainer.innerHTML = '';
+            if (state.logs.length === 0) {
+                logContainer.innerHTML = '<div class="text-white/30 italic">System ready...</div>';
+            } else {
+                state.logs.forEach(log => {
+                    const div = document.createElement('div');
+                    const isError = log.startsWith('Error');
+                    div.className = `border-l-2 pl-2 py-0.5 hover:bg-white/5 transition-colors ${isError ? 'text-red-400 border-red-500/50' : 'text-white/80 border-white/10'}`;
+                    div.innerHTML = `<span class="opacity-50 mr-2">[${new Date().toLocaleTimeString().split(' ')[0]}]</span>${log}`;
+                    logContainer.appendChild(div);
+                });
+                // Auto scroll
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+        }
+
+        // Initialize Icons
+        lucide.createIcons();
+
+        // Subscribe to updates
+        sharedMemory.subscribe(renderState);
+    </script>
+</body>
+</html>
