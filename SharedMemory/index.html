@@ -123,28 +123,31 @@
                             </div>
                         </div>
                         <div
-                            class="p-4 rounded-xl border bg-blue-500/20 border-blue-500/30 text-blue-200 flex flex-col items-center justify-center">
+                            class="p-4 rounded-xl border bg-blue-500/20 border-blue-500/30 text-blue-200 flex flex-col items-center justify-center relative overflow-hidden">
                             <div class="flex items-center gap-2 mb-1 opacity-80">
                                 <i data-lucide="users" class="w-4 h-4"></i>
                                 <span class="text-xs font-medium uppercase tracking-wider">Readers</span>
                             </div>
                             <div id="val-readers" class="text-3xl font-bold">0</div>
+                            <div id="timer-readers" class="text-[10px] font-mono mt-1 text-blue-100/70 h-4"></div>
                         </div>
                         <div
-                            class="p-4 rounded-xl border bg-amber-500/20 border-amber-500/30 text-amber-200 flex flex-col items-center justify-center">
+                            class="p-4 rounded-xl border bg-amber-500/20 border-amber-500/30 text-amber-200 flex flex-col items-center justify-center relative overflow-hidden">
                             <div class="flex items-center gap-2 mb-1 opacity-80">
                                 <i data-lucide="users" class="w-4 h-4"></i>
                                 <span class="text-xs font-medium uppercase tracking-wider">Writers</span>
                             </div>
                             <div id="val-writers" class="text-3xl font-bold">0</div>
+                            <div id="timer-writers" class="text-[10px] font-mono mt-1 text-amber-100/70 h-4"></div>
                         </div>
                         <div
-                            class="p-4 rounded-xl border bg-red-500/20 border-red-500/30 text-red-200 flex flex-col items-center justify-center">
+                            class="p-4 rounded-xl border bg-red-500/20 border-red-500/30 text-red-200 flex flex-col items-center justify-center relative overflow-hidden">
                             <div class="flex items-center gap-2 mb-1 opacity-80">
                                 <i data-lucide="users" class="w-4 h-4"></i>
                                 <span class="text-xs font-medium uppercase tracking-wider">Erasers</span>
                             </div>
                             <div id="val-erasers" class="text-3xl font-bold">0</div>
+                            <div id="timer-erasers" class="text-[10px] font-mono mt-1 text-red-100/70 h-4"></div>
                         </div>
                     </div>
 
@@ -178,6 +181,12 @@
                                 <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg flex-1">
                                     <span class="text-sm text-white/70 pl-2">Aging:</span>
                                     <input type="number" id="aging-input" value="5" onchange="app.updateAgingFactor()"
+                                        class="bg-transparent border-b border-white/20 text-white w-full text-center focus:outline-none focus:border-indigo-500 transition-colors">
+                                </div>
+                                <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg flex-1">
+                                    <span class="text-sm text-white/70 pl-2">Time (s):</span>
+                                    <input type="number" id="quantum-input" value="30"
+                                        onchange="app.updateQuantumTime()"
                                         class="bg-transparent border-b border-white/20 text-white w-full text-center focus:outline-none focus:border-indigo-500 transition-colors">
                                 </div>
                             </div>
@@ -417,6 +426,15 @@
 
                 this.listeners = [];
                 this.logs = [];
+
+                // Time Quantum Logic
+                this.QUANTA_TIME = 30000; // Default 30 seconds
+                this.readTimeouts = [];
+                this.writeTimeouts = [];
+                this.eraseTimeouts = [];
+
+                // Track active processes for UI timers: { type, id, startTime, duration }
+                this.activeProcesses = [];
             }
 
             subscribe(listener) {
@@ -434,7 +452,9 @@
                     readHeap: this.readHeap.getElements(),
                     writeHeap: this.writeHeap.getElements(),
                     eraseHeap: this.eraseHeap.getElements(),
-                    logs: [...this.logs]
+                    logs: [...this.logs],
+                    activeProcesses: [...this.activeProcesses],
+                    quantaTime: this.QUANTA_TIME
                 };
                 this.listeners.forEach(l => l(state));
             }
@@ -447,6 +467,12 @@
 
             clearLogs() {
                 this.logs = [];
+                this.notify();
+            }
+
+            setQuantumTime(ms) {
+                this.QUANTA_TIME = ms;
+                this.log(`Time Quantum updated to ${ms / 1000}s`);
                 this.notify();
             }
 
@@ -515,6 +541,22 @@
                     this.semaphore -= 1;
                     this.log(`Allowed to read. Count = ${this.readCount}`);
 
+                    // Schedule Timeout
+                    const duration = this.QUANTA_TIME;
+                    const timeoutId = setTimeout(() => {
+                        this.log("⚠️ Reader timed out (Preempted)");
+                        this.signalRead();
+                    }, duration);
+                    this.readTimeouts.push(timeoutId);
+
+                    // Track active process
+                    this.activeProcesses.push({
+                        type: 'READ',
+                        id: timeoutId, // Use timeout ID as unique identifier
+                        startTime: Date.now(),
+                        duration: duration
+                    });
+
                     // Remove the reader that just got access
                     this.readHeap.popMax();
 
@@ -545,6 +587,22 @@
                     this.semaphore -= 1;
                     this.log(`Allowed to write. Count = ${this.writeCount}`);
 
+                    // Schedule Timeout
+                    const duration = this.QUANTA_TIME;
+                    const timeoutId = setTimeout(() => {
+                        this.log("⚠️ Writer timed out (Preempted)");
+                        this.signalWrite();
+                    }, duration);
+                    this.writeTimeouts.push(timeoutId);
+
+                    // Track active process
+                    this.activeProcesses.push({
+                        type: 'WRITE',
+                        id: timeoutId,
+                        startTime: Date.now(),
+                        duration: duration
+                    });
+
                     if (!this.writeHeap.isEmpty()) {
                         this.modifyMinOfAllQueue();
                     }
@@ -567,6 +625,22 @@
                     this.semaphore -= 1;
                     this.log(`Allowed to erase. Count = ${this.eraseCount}`);
 
+                    // Schedule Timeout
+                    const duration = this.QUANTA_TIME;
+                    const timeoutId = setTimeout(() => {
+                        this.log("⚠️ Eraser timed out (Preempted)");
+                        this.signalErase();
+                    }, duration);
+                    this.eraseTimeouts.push(timeoutId);
+
+                    // Track active process
+                    this.activeProcesses.push({
+                        type: 'ERASE',
+                        id: timeoutId,
+                        startTime: Date.now(),
+                        duration: duration
+                    });
+
                     if (!this.eraseHeap.isEmpty()) {
                         this.modifyMinOfAllQueue();
                     }
@@ -579,6 +653,15 @@
                     this.notify();
                     return;
                 }
+
+                // Clear oldest timeout
+                if (this.readTimeouts.length > 0) {
+                    const id = this.readTimeouts.shift();
+                    clearTimeout(id);
+                    // Remove from active processes
+                    this.activeProcesses = this.activeProcesses.filter(p => p.id !== id);
+                }
+
                 this.readCount -= 1;
                 this.semaphore += 1;
                 this.log(`Signal READ. Semaphore = ${this.semaphore}`);
@@ -593,6 +676,15 @@
                     this.notify();
                     return;
                 }
+
+                // Clear oldest timeout
+                if (this.writeTimeouts.length > 0) {
+                    const id = this.writeTimeouts.shift();
+                    clearTimeout(id);
+                    // Remove from active processes
+                    this.activeProcesses = this.activeProcesses.filter(p => p.id !== id);
+                }
+
                 this.writeCount -= 1;
                 this.semaphore += 1;
                 this.log(`Signal WRITE. Semaphore = ${this.semaphore}`);
@@ -606,6 +698,15 @@
                     this.notify();
                     return;
                 }
+
+                // Clear oldest timeout
+                if (this.eraseTimeouts.length > 0) {
+                    const id = this.eraseTimeouts.shift();
+                    clearTimeout(id);
+                    // Remove from active processes
+                    this.activeProcesses = this.activeProcesses.filter(p => p.id !== id);
+                }
+
                 this.eraseCount -= 1;
                 this.semaphore += 1;
                 this.log(`Signal ERASE. Semaphore = ${this.semaphore}`);
@@ -647,6 +748,10 @@
             updateAgingFactor: () => {
                 const factor = parseInt(document.getElementById('aging-input').value) || 5;
                 sharedMemory.setAgingFactor(factor);
+            },
+            updateQuantumTime: () => {
+                const seconds = parseInt(document.getElementById('quantum-input').value) || 30;
+                sharedMemory.setQuantumTime(seconds * 1000);
             },
             clearLogs: () => {
                 sharedMemory.clearLogs();
@@ -717,6 +822,36 @@
                 logContainer.scrollTop = logContainer.scrollHeight;
             }
         }
+
+        // Timer Logic
+        setInterval(() => {
+            const now = Date.now();
+            const active = sharedMemory.activeProcesses;
+
+            // Helper to get min remaining time for a type
+            const getMinTime = (type) => {
+                const processes = active.filter(p => p.type === type);
+                if (processes.length === 0) return null;
+                const times = processes.map(p => Math.max(0, Math.ceil((p.startTime + p.duration - now) / 1000)));
+                return Math.min(...times);
+            };
+
+            const updateTimerDisplay = (id, time) => {
+                const el = document.getElementById(id);
+                if (time !== null) {
+                    el.textContent = `⏱️ ${time}s`;
+                    el.classList.add('animate-pulse');
+                } else {
+                    el.textContent = '';
+                    el.classList.remove('animate-pulse');
+                }
+            };
+
+            updateTimerDisplay('timer-readers', getMinTime('READ'));
+            updateTimerDisplay('timer-writers', getMinTime('WRITE'));
+            updateTimerDisplay('timer-erasers', getMinTime('ERASE'));
+
+        }, 100);
 
         // Initialize Icons
         lucide.createIcons();
