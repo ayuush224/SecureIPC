@@ -544,8 +544,9 @@
                     // Schedule Timeout
                     const duration = this.QUANTA_TIME;
                     const timeoutId = setTimeout(() => {
-                        this.log("⚠️ Reader timed out (Preempted)");
+                        this.log("⚠️ Reader timed out (Preempted & Re-queued)");
                         this.signalRead();
+                        this.read(10); // Round Robin: Re-queue with default priority
                     }, duration);
                     this.readTimeouts.push(timeoutId);
 
@@ -590,8 +591,9 @@
                     // Schedule Timeout
                     const duration = this.QUANTA_TIME;
                     const timeoutId = setTimeout(() => {
-                        this.log("⚠️ Writer timed out (Preempted)");
+                        this.log("⚠️ Writer timed out (Preempted & Re-queued)");
                         this.signalWrite();
+                        this.write(10); // Round Robin: Re-queue with default priority
                     }, duration);
                     this.writeTimeouts.push(timeoutId);
 
@@ -628,8 +630,9 @@
                     // Schedule Timeout
                     const duration = this.QUANTA_TIME;
                     const timeoutId = setTimeout(() => {
-                        this.log("⚠️ Eraser timed out (Preempted)");
+                        this.log("⚠️ Eraser timed out (Preempted & Re-queued)");
                         this.signalErase();
+                        this.erase(10); // Round Robin: Re-queue with default priority
                     }, duration);
                     this.eraseTimeouts.push(timeoutId);
 
