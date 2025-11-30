@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,12 +9,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
-        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
         /* Glassmorphism utilities */
         .glass {
             background: rgba(255, 255, 255, 0.05);
@@ -22,23 +38,26 @@
         }
     </style>
 </head>
+
 <body class="min-h-screen bg-[#0f172a] text-white selection:bg-indigo-500/30 overflow-hidden">
 
     <!-- Background Gradients -->
     <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px]"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 rounded-full blur-[120px]">
+        </div>
     </div>
 
     <div class="relative z-10 container mx-auto p-4 md:p-8 h-screen flex flex-col gap-6">
-        
+
         <!-- Header -->
         <header class="flex items-center gap-4 pb-4 border-b border-white/10 shrink-0">
             <div class="p-3 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
                 <i data-lucide="cpu" class="w-8 h-8 text-indigo-400"></i>
             </div>
             <div>
-                <h1 class="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
+                <h1
+                    class="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
                     IPC Shared Memory Simulation
                 </h1>
                 <p class="text-white/40 text-sm">Priority-based scheduling with Aging & Semaphores</p>
@@ -47,7 +66,7 @@
 
         <!-- Main Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0">
-            
+
             <!-- Left Column: Queues -->
             <div class="lg:col-span-3 flex flex-col gap-4 min-h-0">
                 <!-- Read Queue -->
@@ -84,14 +103,16 @@
             <!-- Middle Column: State & Controls -->
             <div class="lg:col-span-6 flex flex-col gap-6">
                 <!-- Memory State -->
-                <div class="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 backdrop-blur-xl rounded-2xl p-6 border border-white/10 shadow-2xl shrink-0">
+                <div
+                    class="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 backdrop-blur-xl rounded-2xl p-6 border border-white/10 shadow-2xl shrink-0">
                     <div class="flex items-center gap-3 mb-6">
                         <i data-lucide="database" class="w-6 h-6 text-indigo-400"></i>
                         <h2 class="text-xl font-bold text-white">Shared Memory State</h2>
                     </div>
 
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="p-4 rounded-xl border bg-emerald-500/20 border-emerald-500/30 text-emerald-200 flex flex-col items-center justify-center">
+                        <div
+                            class="p-4 rounded-xl border bg-emerald-500/20 border-emerald-500/30 text-emerald-200 flex flex-col items-center justify-center">
                             <div class="flex items-center gap-2 mb-1 opacity-80">
                                 <i data-lucide="lock" class="w-4 h-4"></i>
                                 <span class="text-xs font-medium uppercase tracking-wider">Semaphore</span>
@@ -101,26 +122,32 @@
                                 <span class="text-sm opacity-50 font-normal">/<span id="val-total">5</span></span>
                             </div>
                         </div>
-                        <div class="p-4 rounded-xl border bg-blue-500/20 border-blue-500/30 text-blue-200 flex flex-col items-center justify-center">
+                        <div
+                            class="p-4 rounded-xl border bg-blue-500/20 border-blue-500/30 text-blue-200 flex flex-col items-center justify-center relative overflow-hidden">
                             <div class="flex items-center gap-2 mb-1 opacity-80">
                                 <i data-lucide="users" class="w-4 h-4"></i>
                                 <span class="text-xs font-medium uppercase tracking-wider">Readers</span>
                             </div>
                             <div id="val-readers" class="text-3xl font-bold">0</div>
+                            <div id="timer-readers" class="text-[10px] font-mono mt-1 text-blue-100/70 h-4"></div>
                         </div>
-                        <div class="p-4 rounded-xl border bg-amber-500/20 border-amber-500/30 text-amber-200 flex flex-col items-center justify-center">
+                        <div
+                            class="p-4 rounded-xl border bg-amber-500/20 border-amber-500/30 text-amber-200 flex flex-col items-center justify-center relative overflow-hidden">
                             <div class="flex items-center gap-2 mb-1 opacity-80">
                                 <i data-lucide="users" class="w-4 h-4"></i>
                                 <span class="text-xs font-medium uppercase tracking-wider">Writers</span>
                             </div>
                             <div id="val-writers" class="text-3xl font-bold">0</div>
+                            <div id="timer-writers" class="text-[10px] font-mono mt-1 text-amber-100/70 h-4"></div>
                         </div>
-                        <div class="p-4 rounded-xl border bg-red-500/20 border-red-500/30 text-red-200 flex flex-col items-center justify-center">
+                        <div
+                            class="p-4 rounded-xl border bg-red-500/20 border-red-500/30 text-red-200 flex flex-col items-center justify-center relative overflow-hidden">
                             <div class="flex items-center gap-2 mb-1 opacity-80">
                                 <i data-lucide="users" class="w-4 h-4"></i>
                                 <span class="text-xs font-medium uppercase tracking-wider">Erasers</span>
                             </div>
                             <div id="val-erasers" class="text-3xl font-bold">0</div>
+                            <div id="timer-erasers" class="text-[10px] font-mono mt-1 text-red-100/70 h-4"></div>
                         </div>
                     </div>
 
@@ -135,27 +162,45 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Controls -->
                 <div class="glass rounded-xl p-6 border border-white/10 shadow-xl flex-1">
                     <h3 class="text-lg font-semibold text-white mb-4">Controls</h3>
-                    
+
                     <div class="space-y-6">
                         <!-- Add Process -->
                         <div class="space-y-3">
-                            <label class="text-xs text-white/50 uppercase tracking-wider font-medium">Add Process</label>
-                            <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg">
-                                <span class="text-sm text-white/70 pl-2">Priority:</span>
-                                <input type="number" id="priority-input" value="10" class="bg-transparent border-b border-white/20 text-white w-16 text-center focus:outline-none focus:border-indigo-500 transition-colors">
+                            <label class="text-xs text-white/50 uppercase tracking-wider font-medium">Add
+                                Process</label>
+                            <div class="flex gap-4">
+                                <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg flex-1">
+                                    <span class="text-sm text-white/70 pl-2">Priority:</span>
+                                    <input type="number" id="priority-input" value="10"
+                                        class="bg-transparent border-b border-white/20 text-white w-full text-center focus:outline-none focus:border-indigo-500 transition-colors">
+                                </div>
+                                <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg flex-1">
+                                    <span class="text-sm text-white/70 pl-2">Aging:</span>
+                                    <input type="number" id="aging-input" value="5" onchange="app.updateAgingFactor()"
+                                        class="bg-transparent border-b border-white/20 text-white w-full text-center focus:outline-none focus:border-indigo-500 transition-colors">
+                                </div>
+                                <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg flex-1">
+                                    <span class="text-sm text-white/70 pl-2">Time (s):</span>
+                                    <input type="number" id="quantum-input" value="30"
+                                        onchange="app.updateQuantumTime()"
+                                        class="bg-transparent border-b border-white/20 text-white w-full text-center focus:outline-none focus:border-indigo-500 transition-colors">
+                                </div>
                             </div>
                             <div class="grid grid-cols-3 gap-2">
-                                <button onclick="app.addProcess('READ')" class="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                <button onclick="app.addProcess('READ')"
+                                    class="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
                                     <i data-lucide="plus" class="w-4 h-4"></i> Read
                                 </button>
-                                <button onclick="app.addProcess('WRITE')" class="flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                <button onclick="app.addProcess('WRITE')"
+                                    class="flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
                                     <i data-lucide="plus" class="w-4 h-4"></i> Write
                                 </button>
-                                <button onclick="app.addProcess('ERASE')" class="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                <button onclick="app.addProcess('ERASE')"
+                                    class="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
                                     <i data-lucide="plus" class="w-4 h-4"></i> Erase
                                 </button>
                             </div>
@@ -165,15 +210,19 @@
 
                         <!-- Signal -->
                         <div class="space-y-3">
-                            <label class="text-xs text-white/50 uppercase tracking-wider font-medium">Manual Signal (Release)</label>
+                            <label class="text-xs text-white/50 uppercase tracking-wider font-medium">Manual Signal
+                                (Release)</label>
                             <div class="grid grid-cols-3 gap-2">
-                                <button onclick="app.signal('READ')" class="flex items-center justify-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 border border-blue-500/30 py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                <button onclick="app.signal('READ')"
+                                    class="flex items-center justify-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 border border-blue-500/30 py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
                                     <i data-lucide="skip-forward" class="w-4 h-4"></i> Read
                                 </button>
-                                <button onclick="app.signal('WRITE')" class="flex items-center justify-center gap-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                <button onclick="app.signal('WRITE')"
+                                    class="flex items-center justify-center gap-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
                                     <i data-lucide="skip-forward" class="w-4 h-4"></i> Write
                                 </button>
-                                <button onclick="app.signal('ERASE')" class="flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30 py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                <button onclick="app.signal('ERASE')"
+                                    class="flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30 py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
                                     <i data-lucide="skip-forward" class="w-4 h-4"></i> Erase
                                 </button>
                             </div>
@@ -184,17 +233,21 @@
 
             <!-- Right Column: Logs -->
             <div class="lg:col-span-3 min-h-0">
-                <div class="bg-black/40 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden flex flex-col h-full">
+                <div
+                    class="bg-black/40 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden flex flex-col h-full">
                     <div class="bg-white/5 p-3 flex items-center justify-between border-b border-white/10 shrink-0">
                         <div class="flex items-center gap-2">
                             <i data-lucide="terminal" class="w-4 h-4 text-white/60"></i>
                             <span class="text-xs font-mono text-white/60 uppercase tracking-wider">System Logs</span>
                         </div>
-                        <button onclick="app.clearLogs()" class="text-white/40 hover:text-white/80 transition-colors p-1 rounded hover:bg-white/10" title="Clear Logs">
+                        <button onclick="app.clearLogs()"
+                            class="text-white/40 hover:text-white/80 transition-colors p-1 rounded hover:bg-white/10"
+                            title="Clear Logs">
                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                         </button>
                     </div>
-                    <div id="log-container" class="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-1 custom-scrollbar">
+                    <div id="log-container"
+                        class="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-1 custom-scrollbar">
                         <div class="text-white/30 italic">System ready...</div>
                     </div>
                 </div>
@@ -373,6 +426,15 @@
 
                 this.listeners = [];
                 this.logs = [];
+
+                // Time Quantum Logic
+                this.QUANTA_TIME = 30000; // Default 30 seconds
+                this.readTimeouts = [];
+                this.writeTimeouts = [];
+                this.eraseTimeouts = [];
+
+                // Track active processes for UI timers: { type, id, startTime, duration }
+                this.activeProcesses = [];
             }
 
             subscribe(listener) {
@@ -390,7 +452,9 @@
                     readHeap: this.readHeap.getElements(),
                     writeHeap: this.writeHeap.getElements(),
                     eraseHeap: this.eraseHeap.getElements(),
-                    logs: [...this.logs]
+                    logs: [...this.logs],
+                    activeProcesses: [...this.activeProcesses],
+                    quantaTime: this.QUANTA_TIME
                 };
                 this.listeners.forEach(l => l(state));
             }
@@ -406,73 +470,181 @@
                 this.notify();
             }
 
-            read(priority) {
-                this.readHeap.push(priority);
-                this.log(`Request READ with priority ${priority}`);
+            setQuantumTime(ms) {
+                this.QUANTA_TIME = ms;
+                this.log(`Time Quantum updated to ${ms / 1000}s`);
+                this.notify();
+            }
 
-                if (this.semaphore <= 0) { this.notify(); return; }
-                if (this.semaphore > this.bufferSize) { this.notify(); return; }
+            modifyMinOfAllQueue() {
+                if (!this.readHeap.isEmpty()) {
+                    this.readHeap.modifyMin(this.agingFactor);
+                }
+                if (!this.writeHeap.isEmpty()) {
+                    this.writeHeap.modifyMin(this.agingFactor);
+                }
+                if (!this.eraseHeap.isEmpty()) {
+                    this.eraseHeap.modifyMin(this.agingFactor);
+                }
+            }
 
-                if (!this.writeCount && !this.eraseCount) {
-                    this.readCount += 1;
-                    this.semaphore -= 1;
-                    this.log(`Allowed to read. Count = ${this.readCount}`);
-                    this.readHeap.popMax();
+            isValidToRead() {
+                if (this.readHeap.isEmpty()) return false;
 
-                    if (!this.readHeap.isEmpty()) {
-                        this.readHeap.modifyMin(this.agingFactor);
-                        
-                        // Starvation Prevention Logic
-                        const nextReadPriority = this.readHeap.getMax();
-                        let canRead = true;
-                        if (!this.writeHeap.isEmpty() && nextReadPriority < this.writeHeap.getMax()) canRead = false;
-                        if (!this.eraseHeap.isEmpty() && nextReadPriority < this.eraseHeap.getMax()) canRead = false;
+                const currentMax = this.readHeap.getMax();
 
-                        if (canRead) {
-                            this.readHeap.popMax(); // Pop before recursive call
-                            this.read(nextReadPriority);
+                if (this.writeHeap.isEmpty() || (!this.writeHeap.isEmpty() && currentMax >= this.writeHeap.getMax())) {
+                    if (this.eraseHeap.isEmpty() || (!this.eraseHeap.isEmpty() && currentMax >= this.eraseHeap.getMax())) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            isValidToWrite() {
+                if (!this.writeHeap.isEmpty()) {
+                    const wr = this.writeHeap.getMax();
+                    if (this.readHeap.isEmpty() || (!this.readHeap.isEmpty() && wr >= this.readHeap.getMax())) {
+                        if (this.eraseHeap.isEmpty() || (!this.eraseHeap.isEmpty() && wr >= this.eraseHeap.getMax())) {
+                            return true;
                         }
                     }
                 }
+                return false;
+            }
+
+            isValidToErase() {
+                if (!this.eraseHeap.isEmpty()) {
+                    const er = this.eraseHeap.getMax();
+                    if (this.readHeap.isEmpty() || (!this.readHeap.isEmpty() && er >= this.readHeap.getMax())) {
+                        if (this.writeHeap.isEmpty() || (!this.writeHeap.isEmpty() && er >= this.writeHeap.getMax())) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            read(priority) {
+                this.readHeap.push(priority);
+                this.log(`Request READ with priority ${priority}`);
+                this.attemptRead();
                 this.notify();
+            }
+
+            attemptRead() {
+                if (this.semaphore <= 0) return;
+                if (this.semaphore > this.bufferSize) return;
+
+                if (this.isValidToRead() && !this.writeCount && !this.eraseCount) {
+                    this.readCount += 1;
+                    this.semaphore -= 1;
+                    this.log(`Allowed to read. Count = ${this.readCount}`);
+
+                    // Schedule Timeout
+                    const duration = this.QUANTA_TIME;
+                    const timeoutId = setTimeout(() => {
+                        this.log("⚠️ Reader timed out (Preempted)");
+                        this.signalRead();
+                    }, duration);
+                    this.readTimeouts.push(timeoutId);
+
+                    // Track active process
+                    this.activeProcesses.push({
+                        type: 'READ',
+                        id: timeoutId, // Use timeout ID as unique identifier
+                        startTime: Date.now(),
+                        duration: duration
+                    });
+
+                    // Remove the reader that just got access
+                    this.readHeap.popMax();
+
+                    if (!this.readHeap.isEmpty()) {
+                        this.modifyMinOfAllQueue();
+                    }
+
+                    // Recursive check for next reader
+                    if (this.isValidToRead()) {
+                        this.attemptRead();
+                    }
+                }
             }
 
             write(priority) {
                 this.writeHeap.push(priority);
                 this.log(`Request WRITE with priority ${priority}`);
+                this.attemptWrite();
+                this.notify();
+            }
 
-                if (this.semaphore <= 0) { this.notify(); return; }
+            attemptWrite() {
+                if (this.semaphore <= 0) return;
 
-                if (!this.readCount && !this.writeCount && !this.eraseCount) {
+                if (this.isValidToWrite() && !this.readCount && !this.writeCount && !this.eraseCount) {
                     this.writeHeap.popMax();
                     this.writeCount += 1;
                     this.semaphore -= 1;
                     this.log(`Allowed to write. Count = ${this.writeCount}`);
 
+                    // Schedule Timeout
+                    const duration = this.QUANTA_TIME;
+                    const timeoutId = setTimeout(() => {
+                        this.log("⚠️ Writer timed out (Preempted)");
+                        this.signalWrite();
+                    }, duration);
+                    this.writeTimeouts.push(timeoutId);
+
+                    // Track active process
+                    this.activeProcesses.push({
+                        type: 'WRITE',
+                        id: timeoutId,
+                        startTime: Date.now(),
+                        duration: duration
+                    });
+
                     if (!this.writeHeap.isEmpty()) {
-                        this.writeHeap.modifyMin(this.agingFactor);
+                        this.modifyMinOfAllQueue();
                     }
                 }
-                this.notify();
             }
 
             erase(priority) {
                 this.eraseHeap.push(priority);
                 this.log(`Request ERASE with priority ${priority}`);
+                this.attemptErase();
+                this.notify();
+            }
 
-                if (this.semaphore <= 0) { this.notify(); return; }
+            attemptErase() {
+                if (this.semaphore <= 0) return;
 
-                if (!this.readCount && !this.writeCount && !this.eraseCount) {
+                if (this.isValidToErase() && !this.readCount && !this.writeCount && !this.eraseCount) {
                     this.eraseHeap.popMax();
                     this.eraseCount += 1;
                     this.semaphore -= 1;
                     this.log(`Allowed to erase. Count = ${this.eraseCount}`);
 
+                    // Schedule Timeout
+                    const duration = this.QUANTA_TIME;
+                    const timeoutId = setTimeout(() => {
+                        this.log("⚠️ Eraser timed out (Preempted)");
+                        this.signalErase();
+                    }, duration);
+                    this.eraseTimeouts.push(timeoutId);
+
+                    // Track active process
+                    this.activeProcesses.push({
+                        type: 'ERASE',
+                        id: timeoutId,
+                        startTime: Date.now(),
+                        duration: duration
+                    });
+
                     if (!this.eraseHeap.isEmpty()) {
-                        this.eraseHeap.modifyMin(this.agingFactor);
+                        this.modifyMinOfAllQueue();
                     }
                 }
-                this.notify();
             }
 
             signalRead() {
@@ -481,19 +653,20 @@
                     this.notify();
                     return;
                 }
+
+                // Clear oldest timeout
+                if (this.readTimeouts.length > 0) {
+                    const id = this.readTimeouts.shift();
+                    clearTimeout(id);
+                    // Remove from active processes
+                    this.activeProcesses = this.activeProcesses.filter(p => p.id !== id);
+                }
+
                 this.readCount -= 1;
                 this.semaphore += 1;
                 this.log(`Signal READ. Semaphore = ${this.semaphore}`);
 
-                if (this.readCount) {
-                    if (!this.readHeap.isEmpty()) {
-                        const num = this.readHeap.getMax();
-                        this.readHeap.popMax();
-                        this.read(num);
-                    }
-                } else {
-                    this.signalAll();
-                }
+                this.signalAll();
                 this.notify();
             }
 
@@ -503,6 +676,15 @@
                     this.notify();
                     return;
                 }
+
+                // Clear oldest timeout
+                if (this.writeTimeouts.length > 0) {
+                    const id = this.writeTimeouts.shift();
+                    clearTimeout(id);
+                    // Remove from active processes
+                    this.activeProcesses = this.activeProcesses.filter(p => p.id !== id);
+                }
+
                 this.writeCount -= 1;
                 this.semaphore += 1;
                 this.log(`Signal WRITE. Semaphore = ${this.semaphore}`);
@@ -516,6 +698,15 @@
                     this.notify();
                     return;
                 }
+
+                // Clear oldest timeout
+                if (this.eraseTimeouts.length > 0) {
+                    const id = this.eraseTimeouts.shift();
+                    clearTimeout(id);
+                    // Remove from active processes
+                    this.activeProcesses = this.activeProcesses.filter(p => p.id !== id);
+                }
+
                 this.eraseCount -= 1;
                 this.semaphore += 1;
                 this.log(`Signal ERASE. Semaphore = ${this.semaphore}`);
@@ -524,36 +715,18 @@
             }
 
             signalAll() {
-                if (!this.readHeap.isEmpty()) {
-                    const re = this.readHeap.getMax();
-                    if ((this.writeHeap.isEmpty()) || (!this.writeHeap.isEmpty() && re >= this.writeHeap.getMax())) {
-                        if ((this.eraseHeap.isEmpty()) || (!this.eraseHeap.isEmpty() && re >= this.eraseHeap.getMax())) {
-                            this.readHeap.popMax();
-                            this.read(re);
-                            return;
-                        }
-                    }
+                if (this.isValidToRead()) {
+                    this.attemptRead();
+                } else if (this.isValidToWrite()) {
+                    this.attemptWrite();
+                } else if (this.isValidToErase()) {
+                    this.attemptErase();
                 }
+            }
 
-                if (!this.writeHeap.isEmpty()) {
-                    const wr = this.writeHeap.getMax();
-                    if ((this.readHeap.isEmpty()) || (!this.readHeap.isEmpty() && wr >= this.readHeap.getMax())) {
-                        if ((this.eraseHeap.isEmpty()) || (!this.eraseHeap.isEmpty() && wr >= this.eraseHeap.getMax())) {
-                            this.writeHeap.popMax();
-                            this.write(wr);
-                        }
-                    }
-                }
-
-                if (!this.eraseHeap.isEmpty()) {
-                    const er = this.eraseHeap.getMax();
-                    if ((this.readHeap.isEmpty()) || (!this.readHeap.isEmpty() && er >= this.readHeap.getMax())) {
-                        if ((this.writeHeap.isEmpty()) || (!this.writeHeap.isEmpty() && er >= this.writeHeap.getMax())) {
-                            this.eraseHeap.popMax();
-                            this.erase(er);
-                        }
-                    }
-                }
+            setAgingFactor(factor) {
+                this.agingFactor = factor;
+                this.log(`Aging Factor updated to ${this.agingFactor}`);
             }
         }
 
@@ -571,6 +744,14 @@
                 if (type === 'READ') sharedMemory.signalRead();
                 if (type === 'WRITE') sharedMemory.signalWrite();
                 if (type === 'ERASE') sharedMemory.signalErase();
+            },
+            updateAgingFactor: () => {
+                const factor = parseInt(document.getElementById('aging-input').value) || 5;
+                sharedMemory.setAgingFactor(factor);
+            },
+            updateQuantumTime: () => {
+                const seconds = parseInt(document.getElementById('quantum-input').value) || 30;
+                sharedMemory.setQuantumTime(seconds * 1000);
             },
             clearLogs: () => {
                 sharedMemory.clearLogs();
@@ -642,6 +823,36 @@
             }
         }
 
+        // Timer Logic
+        setInterval(() => {
+            const now = Date.now();
+            const active = sharedMemory.activeProcesses;
+
+            // Helper to get min remaining time for a type
+            const getMinTime = (type) => {
+                const processes = active.filter(p => p.type === type);
+                if (processes.length === 0) return null;
+                const times = processes.map(p => Math.max(0, Math.ceil((p.startTime + p.duration - now) / 1000)));
+                return Math.min(...times);
+            };
+
+            const updateTimerDisplay = (id, time) => {
+                const el = document.getElementById(id);
+                if (time !== null) {
+                    el.textContent = `⏱️ ${time}s`;
+                    el.classList.add('animate-pulse');
+                } else {
+                    el.textContent = '';
+                    el.classList.remove('animate-pulse');
+                }
+            };
+
+            updateTimerDisplay('timer-readers', getMinTime('READ'));
+            updateTimerDisplay('timer-writers', getMinTime('WRITE'));
+            updateTimerDisplay('timer-erasers', getMinTime('ERASE'));
+
+        }, 100);
+
         // Initialize Icons
         lucide.createIcons();
 
@@ -649,4 +860,5 @@
         sharedMemory.subscribe(renderState);
     </script>
 </body>
+
 </html>
