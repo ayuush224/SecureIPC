@@ -3,526 +3,682 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IPC_SIM // SECURE_KERNEL</title>
+    <title>IPC_SIM // NEBULA_OS</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
     <style>
+        /* --- NEBULA THEME VARIABLES --- */
         :root {
-            --bg: #e0e0e0;
-            --border: 3px solid #000000;
-            --shadow: 6px 6px 0px #000000;
-            --red: #ff6b6b;
-            --yellow: #feca57;
-            --green: #1dd1a1;
-            --blue: #54a0ff;
-            --purple: #a29bfe;
-            --mono: 'Courier New', Courier, monospace;
+            /* Backgrounds */
+            --bg-void: #030014;
+            --bg-glass: rgba(255, 255, 255, 0.03);
+            --bg-glass-hover: rgba(255, 255, 255, 0.07);
+            
+            /* Accents */
+            --accent-primary: #8b5cf6; /* Violet */
+            --accent-secondary: #06b6d4; /* Cyan */
+            --accent-root: #f43f5e; /* Rose */
+            --accent-user: #f59e0b; /* Amber */
+            --accent-guest: #10b981; /* Emerald */
+            
+            /* Borders & Glows */
+            --border-light: rgba(255, 255, 255, 0.1);
+            --glow-primary: 0 0 20px rgba(139, 92, 246, 0.3);
+            
+            /* Text */
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+
+            --font-display: 'Space Grotesk', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
         }
-        * { box-sizing: border-box; user-select: none; }
+
+        * { box-sizing: border-box; user-select: none; outline: none; }
+
         body {
             margin: 0; padding: 20px;
-            background-color: var(--bg);
-            font-family: var(--mono);
+            background-color: var(--bg-void);
+            color: var(--text-main);
+            font-family: var(--font-body);
             height: 100vh;
-            display: flex; flex-direction: column; gap: 20px;
+            display: flex; flex-direction: column; gap: 24px;
             overflow: hidden;
+            /* Subtle animated gradient background */
+            background: radial-gradient(circle at 50% 0%, #1e1b4b, #030014 60%);
         }
+
+        /* --- TOP BAR (Floating) --- */
         header {
-            background: white; border: var(--border); box-shadow: var(--shadow);
-            padding: 15px; display: flex; justify-content: space-between; align-items: center;
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--bg-glass);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-light);
+            padding: 12px 24px;
+            border-radius: 100px; /* Pill shape */
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
             z-index: 100;
+            margin: 0 20px;
         }
-        h1 { margin: 0; font-size: 24px; font-weight: 900; transform: skew(-5deg); background: black; color: white; padding: 5px 15px; }
-        .btn-group { display: flex; gap: 10px; }
-        button[title]:hover::after {
-            content: attr(title);
-            position: absolute;
-            top: 100%; left: 50%; transform: translateX(-50%);
-            background: black; color: white; padding: 5px; font-size: 10px;
-            white-space: nowrap; pointer-events: none; margin-top: 5px;
-            z-index: 200;
+
+        .brand {
+            font-family: var(--font-display);
+            font-weight: 700; font-size: 19px;
+            letter-spacing: -0.5px;
+            display: flex; align-items: center; gap: 10px;
         }
+        .brand-icon {
+            width: 24px; height: 24px;
+            background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
+            border-radius: 6px;
+            box-shadow: var(--glow-primary);
+        }
+
+        .controls { display: flex; gap: 8px; }
+
+        .btn-icon {
+            background: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--text-muted);
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-icon:hover {
+            background: var(--bg-glass-hover);
+            color: var(--text-main);
+            border-color: var(--text-main);
+            transform: scale(1.05);
+        }
+
+        .btn-reset {
+            background: rgba(244, 63, 94, 0.1);
+            border: 1px solid rgba(244, 63, 94, 0.3);
+            color: var(--accent-root);
+            padding: 0 16px; height: 36px;
+            border-radius: 18px;
+            font-family: var(--font-code); font-size: 11px; font-weight: 700;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn-reset:hover {
+            background: var(--accent-root); color: white;
+            box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
+        }
+
+        /* --- MAIN STAGE --- */
         .layout {
-            display: grid; grid-template-columns: 1fr 380px; gap: 20px; height: 100%;
-            min-height: 0;
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 24px;
+            padding: 0 20px;
+            height: 100%;
+            min-height: 0; /* Flex fix */
         }
+
         .kernel-space {
-            background: white; border: var(--border); box-shadow: var(--shadow);
             position: relative;
-            background-image: radial-gradient(#00000022 2px, transparent 2px);
-            background-size: 20px 20px;
+            background: rgba(10, 10, 20, 0.4);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
             overflow: hidden;
+            /* Tech grid pattern */
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            box-shadow: inset 0 0 80px rgba(0,0,0,0.8);
         }
-        #wire-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 0;
-        }
+
+        #wire-layer { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; }
+
+        /* KERNEL CORE (The Heart) */
         .kernel-node {
-            position: absolute;
-            left: 50%; top: 50%;
+            position: absolute; left: 50%; top: 50%;
             transform: translate(-50%, -50%);
-            width: 200px; height: 150px;
-            border: var(--border); border-radius: 15px;
-            background: var(--blue); color: white;
-            z-index: 5;
+            width: 200px; height: 140px;
+            
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            box-shadow: 0 0 50px rgba(139, 92, 246, 0.15);
+            
+            border-radius: 20px;
+            z-index: 10;
             display: flex; flex-direction: column; align-items: center;
-            padding: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 12px;
             transition: transform 0.05s;
         }
         .kernel-header {
-            border-bottom: 2px solid white; width: 100%; text-align: center;
-            padding-bottom: 5px; margin-bottom: 5px; font-weight: bold;
+            font-family: var(--font-code); font-size: 10px;
+            color: var(--accent-primary); letter-spacing: 2px; margin-bottom: 8px;
+            text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
         }
         .buffer-container {
-            width: 100%; flex-grow: 1; overflow-y: auto;
-            display: flex; flex-direction: column; gap: 4px;
+            width: 100%; flex-grow: 1;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+            overflow-y: auto;
+            padding: 4px; display: flex; flex-direction: column; gap: 4px;
         }
         .buffer-container::-webkit-scrollbar { width: 0; }
+
         .msg-item {
-            background: white; color: black; border: 2px solid black;
-            font-size: 10px; padding: 3px; text-align: center; font-weight: bold;
-            animation: slideIn 0.2s;
+            background: linear-gradient(90deg, rgba(255,255,255,0.05), transparent);
+            border-left: 2px solid #fff;
+            padding: 6px 10px;
+            font-family: var(--font-code); font-size: 10px; color: var(--text-muted);
+            display: flex; justify-content: space-between;
+            border-radius: 0 4px 4px 0;
+            animation: slideIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
-        @keyframes slideIn { from { transform: translateY(10px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+        @keyframes slideIn { from { opacity:0; transform: translateX(-10px); } to { opacity:1; transform: translateX(0); } }
+
+        /* PROCESS NODES */
         .node {
             position: absolute;
-            width: 90px; height: 90px;
-            border: var(--border); border-radius: 50%;
-            background: white;
+            width: 80px; height: 80px;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-light);
+            border-radius: 50%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            font-weight: bold; z-index: 2;
-            box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
+            z-index: 5;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: transform 0.2s;
         }
-        .node.root { background: var(--red); }
-        .node.user { background: var(--yellow); }
-        .node.guest { background: var(--green); }
+        .node:hover { transform: scale(1.1); z-index: 20; border-color: var(--text-main); }
+        
+        .node span { font-family: var(--font-display); font-weight: 500; font-size: 12px; }
         .pid {
-            background: black; color: white; padding: 2px 5px;
-            font-size: 10px; position: absolute; bottom: -10px;
+            font-family: var(--font-code); font-size: 9px;
+            background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 100px;
+            margin-top: 4px; color: var(--text-muted);
         }
-        .overlay-icon {
-            position: absolute;
-            left: 50%; top: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 60px;
-            z-index: 50;
-            pointer-events: none;
-            text-shadow: 4px 4px 0px black;
-            animation: popFade 0.8s forwards;
+
+        .node.root { border-bottom: 2px solid var(--accent-root); }
+        .node.user { border-bottom: 2px solid var(--accent-user); }
+        .node.guest { border-bottom: 2px solid var(--accent-guest); }
+
+        /* --- SIDEBAR --- */
+        .sidebar { display: flex; flex-direction: column; gap: 20px; height: 100%; min-height: 0; }
+
+        .panel {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
         }
-        @keyframes popFade {
-            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-            20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-            100% { transform: translate(-50%, -80%) scale(0.8); opacity: 0; }
+
+        .panel-label {
+            font-family: var(--font-code); font-size: 10px; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
+            display: block;
         }
+
+        .input-group { display: flex; gap: 8px; margin-bottom: 20px; }
+        
+        select {
+            flex-grow: 1;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-light);
+            color: var(--text-main);
+            padding: 10px; border-radius: 10px;
+            font-family: var(--font-body); font-size: 12px;
+            cursor: pointer; transition: 0.2s;
+        }
+        select:hover { border-color: var(--accent-primary); }
+
+        .btn-add {
+            width: 40px; background: var(--text-main); color: black;
+            border: none; border-radius: 10px; font-size: 20px; cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-add:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(255,255,255,0.3); }
+
+        .routing-grid {
+            display: flex; flex-direction: column; gap: 12px;
+            background: rgba(0,0,0,0.2); padding: 16px; border-radius: 16px;
+            border: 1px solid var(--border-light);
+        }
+
+        .btn-action {
+            width: 100%; padding: 12px; border-radius: 10px;
+            font-family: var(--font-display); font-weight: 600; font-size: 13px;
+            cursor: pointer; border: none; transition: 0.2s;
+        }
+        .btn-send {
+            background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
+            color: white; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+        .btn-send:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(139, 92, 246, 0.5); }
+        
+        .btn-read {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-main); border: 1px solid var(--border-light);
+        }
+        .btn-read:hover { background: rgba(255,255,255,0.1); }
+
+        /* TERMINAL */
+        .terminal {
+            flex-grow: 1;
+            background: #000;
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 16px;
+            font-family: var(--font-code); font-size: 11px;
+            overflow-y: auto; min-height: 0;
+            box-shadow: inset 0 0 20px rgba(255,255,255,0.05);
+        }
+        .log-entry { margin-bottom: 6px; opacity: 0.8; }
+        .log-time { color: var(--text-muted); margin-right: 8px; opacity: 0.5; }
+        .log-sys { color: var(--accent-primary); }
+        .log-err { color: var(--accent-root); }
+        .log-ok { color: var(--accent-guest); }
+
+        /* --- ANIMATIONS --- */
         .packet {
-            position: absolute; width: 24px; height: 24px;
-            background: black; border: 2px solid white;
-            color: white; display: flex; justify-content: center; align-items: center;
-            font-size: 12px; z-index: 20;
+            position: absolute; width: 12px; height: 12px;
+            background: #fff; border-radius: 50%;
+            box-shadow: 0 0 15px #fff, 0 0 30px var(--accent-primary);
+            z-index: 100;
         }
         .packet-label {
             position: absolute; top: -25px; left: 50%; transform: translateX(-50%);
-            background: var(--purple); border: 2px solid black; color: black;
-            font-size: 10px; white-space: nowrap; padding: 2px 5px; font-weight: bold;
-            box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+            background: rgba(0,0,0,0.8); padding: 2px 6px; border-radius: 4px;
+            font-size: 9px; white-space: nowrap; color: var(--accent-secondary);
+            border: 1px solid var(--accent-secondary);
         }
-        .sidebar {
-            display: flex; flex-direction: column; gap: 20px; z-index: 10;
-            height: 100%; min-height: 0;
+
+        .overlay-icon {
+            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+            font-size: 60px; z-index: 200; pointer-events: none;
+            filter: drop-shadow(0 0 20px rgba(0,0,0,0.8));
+            animation: popFade 0.8s forwards;
         }
-        .panel { background: white; border: var(--border); padding: 15px; box-shadow: var(--shadow); flex-shrink: 0; }
-        .panel-title { background: black; color: white; padding: 8px; text-align: center; font-weight: bold; margin: -15px -15px 15px -15px; }
-        select, button {
-            width: 100%; padding: 10px; border: 2px solid black;
-            font-family: var(--mono); font-weight: bold; margin-bottom: 10px; cursor: pointer; position: relative;
+        @keyframes popFade {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            40% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -60%) scale(1); opacity: 0; }
         }
-        .terminal {
-            background: #111; color: #0f0; border: var(--border);
-            flex-grow: 1; padding: 10px; font-size: 11px; overflow-y: auto; box-shadow: var(--shadow);
-            min-height: 0; scroll-behavior: smooth;
+        
+        .legend {
+            position: absolute; bottom: 20px; left: 20px;
+            display: flex; gap: 16px;
+            font-family: var(--font-code); font-size: 10px; color: var(--text-muted);
+            background: rgba(0,0,0,0.5); padding: 8px 16px; border-radius: 100px;
+            border: 1px solid var(--border-light); pointer-events: none;
         }
-        .log-entry { margin-bottom: 4px; padding-left: 5px; border-left: 3px solid #555; }
-        .log-err { color: #ff4757; border-left-color: #ff4757; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 4px; }
     </style>
 </head>
 <body>
 
-<header>
-    <h1>Message Passing IPC</h1>
-    <div class="btn-group">
-        <button onclick="sim.undo()" title="Undo (Ctrl+Z)" style="width:50px; font-size:18px; background:var(--yellow);">⎌</button>
-        <button onclick="sim.redo()" title="Redo (Ctrl+Y)" style="width:50px; font-size:18px; background:var(--yellow);">↻</button>
-        <button onclick="sim.reset()" title="Reset System" style="width:auto; background:var(--red); color:white;">RESET</button>
+    <header>
+        <div class="brand">
+            <div class="brand-icon"></div>
+            Message Passing IPC
+        </div>
+        <div class="controls">
+            <button class="btn-icon" onclick="sim.undo()" title="Undo (Ctrl+Z)">⎌</button>
+            <button class="btn-icon" onclick="sim.redo()" title="Redo (Ctrl+Y)">↻</button>
+            <div style="width:1px; background:var(--border-light); margin: 0 8px;"></div>
+            <button class="btn-reset" onclick="sim.reset()">SYSTEM REBOOT</button>
+        </div>
+    </header>
+
+    <div class="layout">
+        <div class="kernel-space" id="kernelSpace">
+            <canvas id="wire-layer"></canvas>
+            
+            <div class="kernel-node" id="kernelNode">
+                <div class="kernel-header">KERNEL BUFFER</div>
+                <div class="buffer-container" id="bufferContainer"></div>
+            </div>
+
+            <div class="legend">
+                <span><span class="dot" style="background:var(--accent-root)"></span>ROOT</span>
+                <span><span class="dot" style="background:var(--accent-user)"></span>USER</span>
+                <span><span class="dot" style="background:var(--accent-guest)"></span>GUEST</span>
+            </div>
+        </div>
+
+        <aside class="sidebar">
+            <div class="panel">
+                <span class="panel-label">Process Manager</span>
+                <div class="input-group">
+                    <select id="spawnType">
+                        <option value="root">ROOT (Admin)</option>
+                        <option value="user">USER (Standard)</option>
+                        <option value="guest">GUEST (Restricted)</option>
+                    </select>
+                    <button class="btn-add" onclick="sim.spawn()">+</button>
+                </div>
+
+                <div class="routing-grid">
+                    <span class="panel-label" style="margin:0">Message Routing</span>
+                    <select id="senderSelect"><option>Sender...</option></select>
+                    <select id="receiverSelect"><option>Receiver...</option></select>
+                    
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+                        <button class="btn-action btn-send" onclick="sim.send()">TRANSMIT</button>
+                        <button class="btn-action btn-read" onclick="sim.read()">RECEIVE</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="terminal" id="terminal">
+                <div class="log-entry log-sys"><span class="log-time">[INIT]</span> Nebula Kernel v1.0 Loaded...</div>
+            </div>
+        </aside>
     </div>
-</header>
 
-<div class="layout">
-    <div class="kernel-space" id="kernelSpace">
-        <canvas id="wire-layer"></canvas>
-        <div style="position:absolute; top:20px; left:20px; pointer-events:none;">
-            <u style="font-weight:bold;">ACL RULES</u>
-            <div style="font-size:11px; margin-top:5px;">
-                <span style="color:var(--red)">■ ROOT:</span> Full Access<br>
-                <span style="color:#f39c12">■ USER:</span> No Root Access<br>
-                <span style="color:var(--green)">■ GUEST:</span> Guest Only
-            </div>
-        </div>
+    <script>
+        class Sim {
+            constructor() {
+                this.procs = [];
+                this.buffer = [];
+                this.pid = 100;
+                this.history = [];
+                this.future = [];
 
-        <div class="kernel-node" id="kernelNode">
-            <div class="kernel-header">KERNEL BUFFER</div>
-            <div class="buffer-container" id="bufferContainer">
-                <div style="opacity:0.5; font-size:10px; margin-top:10px;margin-left:60px">[EMPTY]</div>
-            </div>
-        </div>
-    </div>
+                this.space = document.getElementById('kernelSpace');
+                this.kernel = document.getElementById('kernelNode');
+                this.bufUI = document.getElementById('bufferContainer');
+                this.canvas = document.getElementById('wire-layer');
+                this.ctx = this.canvas.getContext('2d');
+                this.term = document.getElementById('terminal');
 
-    <aside class="sidebar">
-        <div class="panel">
-            <div class="panel-title">CONTROL PANEL</div>
-            <div style="display:flex; gap:5px;">
-                <select id="spawnType">
-                    <option value="root">ROOT (Admin)</option>
-                    <option value="user">USER (Standard)</option>
-                    <option value="guest">GUEST (Restricted)</option>
-                </select>
-                <button onclick="sim.spawn()" style="width:50px; background:var(--yellow);">+</button>
-            </div>
-            <hr style="border:1px dashed #aaa; margin:15px 0;">
-            <label style="font-size:10px;">SENDER</label>
-            <select id="senderSelect"></select>
-            <div style="text-align:center; font-size:14px; margin:-5px 0;">↓</div>
-            <label style="font-size:10px;">RECEIVER</label>
-            <select id="receiverSelect"></select>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
-                <button onclick="sim.send()" style="background:var(--green);">SEND ▶</button>
-                <button onclick="sim.read()" style="background:white;">READ ◀</button>
-            </div>
-        </div>
-        <div class="terminal" id="terminal">
-            <div class="log-entry">[KERNEL] System Online.</div>
-        </div>
-    </aside>
-</div>
+                window.addEventListener('resize', () => this.resize());
+                
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        if (e.key === 'z') { e.preventDefault(); this.undo(); }
+                        if (e.key === 'y') { e.preventDefault(); this.redo(); }
+                    }
+                });
 
-<script>
-class Sim {
-    constructor() {
-        this.procs = [];
-        this.buffer = [];
-        this.pid = 100;
+                // Initialize Permanent Processes
+                this.spawn('root', 'SYS_ROOT', false);
+                this.spawn('user', 'SYS_USER', false);
+                this.spawn('guest', 'SYS_GUEST', false);
+                this.saveState(); // Base State
 
-        // History only for user actions, not initial boot
-        this.history = [];
-        this.future = [];
-
-        this.space = document.getElementById('kernelSpace');
-        this.kernel = document.getElementById('kernelNode');
-        this.bufUI = document.getElementById('bufferContainer');
-        this.canvas = document.getElementById('wire-layer');
-        this.ctx = this.canvas.getContext('2d');
-        this.term = document.getElementById('terminal');
-
-        window.addEventListener('resize', () => this.resize());
-
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey || e.metaKey) {
-                if (e.key === 'z') { e.preventDefault(); this.undo(); }
-                if (e.key === 'y') { e.preventDefault(); this.redo(); }
+                this.resize();
+                this.loop();
             }
-        });
 
-        // Initial permanent processes (not undoable)
-        this.spawn('root', 'ROOT_SYS', false);
-        this.spawn('user', 'USER_WEB', false);
-        this.spawn('guest', 'GUEST_1', false);
-
-        // Save initial state as base for undo/redo (but we never pop below this)
-        this.saveState();
-
-        this.resize();
-        this.loop();
-    }
-
-    // Snapshot entire dynamic state
-    snapshot() {
-        return {
-            processes: this.procs.map(p => ({
-                id: p.id, name: p.name, type: p.type, x: p.x, y: p.y
-            })),
-            buffer: JSON.parse(JSON.stringify(this.buffer)),
-            pid: this.pid,
-            logHTML: this.term.innerHTML
-        };
-    }
-
-    saveState() {
-        this.history.push(this.snapshot());
-        this.future = [];
-        if (this.history.length > 50) this.history.shift();
-    }
-
-    restoreState(state) {
-        this.pid = state.pid;
-        this.buffer = state.buffer;
-        this.term.innerHTML = state.logHTML;
-        this.term.scrollTop = this.term.scrollHeight;
-
-        // Remove all existing process nodes from DOM
-        this.procs.forEach(p => { if (p.el) p.el.remove(); });
-
-        // Rebuild processes + DOM
-        this.procs = state.processes.map(pData => {
-            const el = document.createElement('div');
-            el.className = `node ${pData.type}`;
-            el.innerHTML = `<span>${pData.name}</span><div class="pid">${pData.id}</div>`;
-            this.space.appendChild(el);
-            return {...pData, el};
-        });
-
-        this.placeNodes();
-        this.renderBuf();
-        this.updateUI();
-    }
-
-    undo() {
-        if (this.history.length <= 1) return; // Keep earliest snapshot
-        const current = this.history.pop();
-        this.future.push(current);
-        const prev = this.history[this.history.length - 1];
-        this.restoreState(prev);
-    }
-
-    redo() {
-        if (this.future.length === 0) return;
-        const next = this.future.pop();
-        this.history.push(next);
-        this.restoreState(next);
-    }
-
-    spawn(type, name, record = true) {
-        const t = type || document.getElementById('spawnType').value;
-        const n = name || `${t.toUpperCase()}_${this.pid}`;
-        const p = { id: this.pid++, name: n, type: t, el: null, x:0, y:0 };
-
-        const el = document.createElement('div');
-        el.className = `node ${t}`;
-        el.innerHTML = `<span>${n}</span><div class="pid">${p.id}</div>`;
-        this.space.appendChild(el);
-        p.el = el;
-
-        this.procs.push(p);
-        this.placeNodes();
-        this.updateUI();
-        this.log(`Spawned ${n}`);
-
-        if (record) this.saveState();
-    }
-
-    placeNodes() {
-        const cx = this.space.clientWidth / 2;
-        const cy = this.space.clientHeight / 2;
-        const r = 240;
-        const count = this.procs.length;
-
-        this.procs.forEach((p, i) => {
-            const ang = Math.PI + (Math.PI * (i + 1) / (count + 1));
-            p.x = cx + Math.cos(ang) * r - 45;
-            p.y = cy + Math.sin(ang) * r * 0.6 - 45;
-            if (p.el) {
-                p.el.style.left = `${p.x}px`;
-                p.el.style.top = `${p.y}px`;
+            // --- STATE ---
+            snapshot() {
+                return {
+                    processes: this.procs.map(p => ({...p, el: null})),
+                    buffer: JSON.parse(JSON.stringify(this.buffer)),
+                    pid: this.pid,
+                    logHTML: this.term.innerHTML
+                };
             }
-        });
-    }
 
-    check(s, r) {
-        if (s.id === r.id) return "Loopback Error";
-        if (s.type === 'root') return true;
-        if (s.type === 'guest') return r.type === 'guest' ? true : "Guest Restricted";
-        if (s.type === 'user') return r.type === 'root' ? "Root Protected" : true;
-        return true;
-    }
+            saveState() {
+                this.history.push(this.snapshot());
+                this.future = [];
+                if(this.history.length > 50) this.history.shift();
+            }
 
-    send() {
-        const sId = parseInt(document.getElementById('senderSelect').value);
-        const rId = parseInt(document.getElementById('receiverSelect').value);
-        if (!sId || !rId) return;
+            restore(state) {
+                this.pid = state.pid;
+                this.buffer = state.buffer;
+                this.term.innerHTML = state.logHTML;
+                this.term.scrollTop = this.term.scrollHeight;
 
-        const s = this.procs.find(p => p.id === sId);
-        const r = this.procs.find(p => p.id === rId);
+                this.procs.forEach(p => p.el && p.el.remove());
+                this.procs = state.processes.map(data => {
+                    const el = document.createElement('div');
+                    el.className = `node ${data.type}`;
+                    el.innerHTML = `<span>${data.name}</span><div class="pid">PID:${data.id}</div>`;
+                    this.space.appendChild(el);
+                    return { ...data, el: el };
+                });
 
-        if (s.id === r.id) {
-            this.triggerError('⛔');
-            this.log(`BLOCKED: Loopback Error`, 'err');
-            return;
-        }
-
-        this.anim(s, 'kernel', `TO: ${r.name}`, () => {
-            const perm = this.check(s, r);
-            if (perm === true) {
-                this.buffer.push({from:sId, to:rId});
+                this.placeNodes();
                 this.renderBuf();
-                this.log(`Msg Buffered for ${r.name}`);
+                this.updateUI();
+            }
+
+            undo() {
+                if(this.history.length <= 1) return;
+                const curr = this.history.pop();
+                this.future.push(curr);
+                this.restore(this.history[this.history.length - 1]);
+            }
+
+            redo() {
+                if(this.future.length === 0) return;
+                const next = this.future.pop();
+                this.history.push(next);
+                this.restore(next);
+            }
+
+            // --- LOGIC ---
+            spawn(type, name, save = true) {
+                if(save) this.saveState();
+                const t = type || document.getElementById('spawnType').value;
+                const n = name || `${t.toUpperCase()}_${this.pid}`;
+                const p = { id: this.pid++, name: n, type: t, el: null, x:0, y:0 };
+                
+                const el = document.createElement('div');
+                el.className = `node ${t}`;
+                el.innerHTML = `<span>${n}</span><div class="pid">PID:${p.id}</div>`;
+                this.space.appendChild(el);
+                p.el = el;
+                
+                this.procs.push(p);
+                this.placeNodes();
+                this.updateUI();
+                this.log(`Spawned Process: ${n}`, 'sys');
+            }
+
+            placeNodes() {
+                const cx = this.space.clientWidth / 2;
+                const cy = this.space.clientHeight / 2;
+                const r = 260; // Wider radius for breathing room
+                
+                this.procs.forEach((p, i) => {
+                    const count = this.procs.length;
+                    const angle = Math.PI + (Math.PI * (i + 1) / (count + 1));
+                    p.x = cx + Math.cos(angle) * r - 40; // -40 for half width
+                    p.y = cy + Math.sin(angle) * r * 0.6 - 40;
+                    
+                    if(p.el) {
+                        p.el.style.left = `${p.x}px`;
+                        p.el.style.top = `${p.y}px`;
+                    }
+                });
+            }
+
+            check(s, r) {
+                if(s.id === r.id) return "Loopback Error";
+                if(s.type === 'root') return true;
+                if(s.type === 'guest') return r.type === 'guest' ? true : "Guest Restricted";
+                if(s.type === 'user') return r.type === 'root' ? "Root Protected" : true;
+                return true;
+            }
+
+            send() {
+                const sId = parseInt(document.getElementById('senderSelect').value);
+                const rId = parseInt(document.getElementById('receiverSelect').value);
+                if(!sId || !rId) return;
+
+                const s = this.procs.find(p => p.id === sId);
+                const r = this.procs.find(p => p.id === rId);
+
+                if(s.id === r.id) { this.err('⛔', 'Loopback blocked'); return; }
+
+                this.anim(s, 'kernel', `TO: ${r.name}`, () => {
+                    const res = this.check(s, r);
+                    if(res === true) {
+                        this.saveState();
+                        this.buffer.push({from:sId, to:rId});
+                        this.renderBuf();
+                        this.log(`Buffered message for ${r.name}`, 'ok');
+                    } else {
+                        this.err('⛔', `Blocked: ${res}`);
+                    }
+                });
+            }
+
+            read() {
+                const sId = parseInt(document.getElementById('senderSelect').value);
+                const rId = parseInt(document.getElementById('receiverSelect').value);
+                if(!sId || !rId) return;
+
+                if(sId === rId) { this.err('⛔', 'Loopback blocked'); return; }
+
+                const r = this.procs.find(p => p.id === rId);
+                const idx = this.buffer.findIndex(m => m.to === rId && m.from === sId);
+
+                if(idx === -1) { this.err('📭', 'Buffer Empty / No Msg'); return; }
+
                 this.saveState();
-            } else {
-                this.triggerError('⛔');
-                this.log(`BLOCKED: ${perm}`, 'err');
+                this.buffer.splice(idx, 1);
+                this.renderBuf();
+                
+                this.anim('kernel', r, 'DATA_PKT', () => {
+                    this.log(`Data received by ${r.name}`, 'ok');
+                });
             }
-        });
-    }
 
-    read() {
-        const sId = parseInt(document.getElementById('senderSelect').value);
-        const rId = parseInt(document.getElementById('receiverSelect').value);
-        if (!sId || !rId) return;
+            err(icon, msg) {
+                const el = document.createElement('div');
+                el.className = 'overlay-icon';
+                el.innerHTML = icon;
+                this.space.appendChild(el);
+                setTimeout(() => el.remove(), 1000);
+                this.log(msg, 'err');
+                
+                // Premium Shake
+                let i = 0;
+                const shake = setInterval(() => {
+                    const off = (i++ % 2 === 0 ? 4 : -4);
+                    this.kernel.style.transform = `translate(calc(-50% + ${off}px), -50%)`;
+                    if(i > 6) {
+                        clearInterval(shake);
+                        this.kernel.style.transform = `translate(-50%, -50%)`;
+                    }
+                }, 30);
+            }
 
-        if (sId === rId) {
-            this.triggerError('⛔');
-            this.log(`READ ERROR: Loopback not allowed`, 'err');
-            return;
+            renderBuf() {
+                this.bufUI.innerHTML = '';
+                if(this.buffer.length === 0) return;
+                
+                this.buffer.forEach(m => {
+                    const s = this.procs.find(p => p.id === m.from);
+                    const r = this.procs.find(p => p.id === m.to);
+                    if(s && r) {
+                        const d = document.createElement('div');
+                        d.className = 'msg-item';
+                        const color = r.type==='root'?'var(--accent-root)':r.type==='user'?'var(--accent-user)':'var(--accent-guest)';
+                        d.style.borderLeftColor = color;
+                        d.innerHTML = `<span>${s.name}</span><span>➝</span><span>${r.name}</span>`;
+                        this.bufUI.appendChild(d);
+                    }
+                });
+            }
+
+            anim(from, to, text, cb) {
+                const start = this.getPos(from);
+                const end = this.getPos(to);
+                
+                const p = document.createElement('div');
+                p.className = 'packet';
+                p.innerHTML = `<div class="packet-label">${text}</div>`;
+                this.space.appendChild(p);
+
+                const t0 = performance.now();
+                const step = (now) => {
+                    const prog = Math.min((now - t0) / 800, 1);
+                    const ease = prog < .5 ? 2 * prog * prog : -1 + (4 - 2 * prog) * prog;
+                    
+                    const x = start.x + (end.x - start.x) * ease;
+                    const y = start.y + (end.y - start.y) * ease;
+                    
+                    p.style.left = (x - 6) + 'px'; // center 12px
+                    p.style.top = (y - 6) + 'px';
+
+                    if(prog < 1) requestAnimationFrame(step);
+                    else { p.remove(); if(cb) cb(); }
+                };
+                requestAnimationFrame(step);
+            }
+
+            getPos(obj) {
+                if(obj === 'kernel') {
+                    const r = this.kernel.getBoundingClientRect();
+                    const s = this.space.getBoundingClientRect();
+                    return { x: r.left - s.left + r.width/2, y: r.top - s.top + r.height/2 };
+                }
+                return { x: obj.x + 40, y: obj.y + 40 };
+            }
+
+            loop() {
+                this.ctx.clearRect(0,0, this.canvas.width, this.canvas.height);
+                const k = this.getPos('kernel');
+                
+                this.procs.forEach(p => {
+                    const pc = this.getPos(p);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(k.x, k.y);
+                    this.ctx.lineTo(pc.x, pc.y);
+                    
+                    // Premium Gradient Wire attempt using strokeStyle
+                    const grad = this.ctx.createLinearGradient(k.x, k.y, pc.x, pc.y);
+                    grad.addColorStop(0, 'rgba(139, 92, 246, 0.5)');
+                    grad.addColorStop(1, 'rgba(255,255,255,0.05)');
+                    
+                    this.ctx.strokeStyle = grad;
+                    this.ctx.lineWidth = 2;
+                    this.ctx.stroke();
+                });
+                requestAnimationFrame(() => this.loop());
+            }
+
+            updateUI() {
+                const s = document.getElementById('senderSelect');
+                const r = document.getElementById('receiverSelect');
+                const sv = s.value, rv = r.value;
+                s.innerHTML = ''; r.innerHTML = '';
+                
+                this.procs.forEach(p => {
+                    const opt = `<option value="${p.id}">${p.name}</option>`;
+                    s.innerHTML += opt; r.innerHTML += opt;
+                });
+                if(sv) s.value = sv;
+                if(rv) r.value = rv;
+            }
+
+            log(msg, type) {
+                const c = type==='err'?'log-err':type==='ok'?'log-ok':'log-sys';
+                const t = new Date().toLocaleTimeString('en-US',{hour12:false});
+                this.term.insertAdjacentHTML('beforeend', `<div class="log-entry ${c}"><span class="log-time">[${t}]</span> ${msg}</div>`);
+                this.term.scrollTop = this.term.scrollHeight;
+            }
+
+            resize() {
+                this.canvas.width = this.space.clientWidth;
+                this.canvas.height = this.space.clientHeight;
+                this.placeNodes();
+            }
+            
+            reset() { location.reload(); }
         }
 
-        const r = this.procs.find(p => p.id === rId);
-        const idx = this.buffer.findIndex(m => m.to === rId && m.from === sId);
-
-        if (idx === -1) {
-            this.triggerError('📭');
-            this.log(`READ ERROR: No message from sender`, 'err');
-            return;
-        }
-
-        this.buffer.splice(idx, 1);
-        this.renderBuf();
-        this.saveState();
-
-        this.anim('kernel', r, 'DATA', () => {
-            this.log(`Delivered to ${r.name}`);
-        });
-    }
-
-    triggerError(icon) {
-        const el = document.createElement('div');
-        el.className = 'overlay-icon';
-        el.innerHTML = icon;
-        this.space.appendChild(el);
-        setTimeout(() => el.remove(), 1000);
-
-        let i = 0;
-        const shake = setInterval(() => {
-            const offsetX = (i % 2 === 0 ? 5 : -5);
-            this.kernel.style.transform = `translate(calc(-50% + ${offsetX}px), -50%)`;
-            i++;
-            if (i > 6) {
-                clearInterval(shake);
-                this.kernel.style.transform = `translate(-50%, -50%)`;
-            }
-        }, 40);
-    }
-
-    renderBuf() {
-        this.bufUI.innerHTML = '';
-        if (this.buffer.length === 0) {
-            this.bufUI.innerHTML = '<div style="opacity:0.5;font-size:10px;margin-top:10px;margin-left:60px">[EMPTY]</div>';
-            return;
-        }
-        this.buffer.forEach(m => {
-            const s = this.procs.find(p => p.id === m.from);
-            const r = this.procs.find(p => p.id === m.to);
-            if (s && r) {
-                const d = document.createElement('div');
-                d.className = 'msg-item';
-                d.innerHTML = `${s.name} → ${r.name}`;
-                d.style.borderLeft = `4px solid ${r.type==='root'?'red':r.type==='user'?'orange':'green'}`;
-                this.bufUI.appendChild(d);
-            }
-        });
-    }
-
-    anim(from, to, text, cb) {
-        const start = this.getPos(from);
-        const end = this.getPos(to);
-
-        const p = document.createElement('div');
-        p.className = 'packet';
-        p.innerHTML = '✉<div class="packet-label">'+text+'</div>';
-        this.space.appendChild(p);
-
-        const dur = 800;
-        const t0 = performance.now();
-
-        const step = (now) => {
-            const prog = Math.min((now - t0)/dur, 1);
-            const ease = prog < .5 ? 2*prog*prog : -1+(4-2*prog)*prog;
-
-            const x = start.x + (end.x - start.x) * ease;
-            const y = start.y + (end.y - start.y) * ease;
-
-            p.style.left = (x-12)+'px';
-            p.style.top = (y-12)+'px';
-
-            if (prog < 1) requestAnimationFrame(step);
-            else {
-                p.remove();
-                if (cb) cb();
-            }
-        };
-        requestAnimationFrame(step);
-    }
-
-    getPos(obj) {
-        if (obj === 'kernel') {
-            const r = this.kernel.getBoundingClientRect();
-            const s = this.space.getBoundingClientRect();
-            return { x: r.left - s.left + r.width/2, y: r.top - s.top + r.height/2 };
-        }
-        return { x: obj.x + 45, y: obj.y + 45 };
-    }
-
-    loop() {
-        this.ctx.clearRect(0,0, this.canvas.width, this.canvas.height);
-        const k = this.getPos('kernel');
-
-        this.procs.forEach(p => {
-            const pc = this.getPos(p);
-            this.ctx.beginPath();
-            this.ctx.moveTo(k.x, k.y);
-            this.ctx.lineTo(pc.x, pc.y);
-            this.ctx.strokeStyle = '#00000020';
-            this.ctx.lineWidth = 3;
-            this.ctx.stroke();
-        });
-        requestAnimationFrame(() => this.loop());
-    }
-
-    updateUI() {
-        const s = document.getElementById('senderSelect');
-        const r = document.getElementById('receiverSelect');
-        const sV = s.value; const rV = r.value;
-        s.innerHTML=''; r.innerHTML='';
-        this.procs.forEach(p => {
-            const opt = `<option value="${p.id}">${p.name}</option>`;
-            s.innerHTML+=opt; r.innerHTML+=opt;
-        });
-        if (sV) s.value = sV;
-        if (rV) r.value = rV;
-    }
-
-    log(msg, type) {
-        const c = type==='err'?'log-err':'';
-        this.term.insertAdjacentHTML('beforeend', `<div class="log-entry ${c}">[${new Date().toLocaleTimeString()}] ${msg}</div>`);
-        this.term.scrollTop = this.term.scrollHeight;
-    }
-
-    resize() {
-        this.canvas.width = this.space.clientWidth;
-        this.canvas.height = this.space.clientHeight;
-        this.placeNodes();
-    }
-
-    reset() { location.reload(); }
-}
-
-const sim = new Sim();
-</script>
+        const sim = new Sim();
+    </script>
 </body>
 </html>
