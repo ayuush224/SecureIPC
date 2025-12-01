@@ -12,26 +12,21 @@
     <style>
         /* --- NEBULA THEME VARIABLES --- */
         :root {
-            /* Critical Fix: Tells browser to render native controls in dark mode */
             color-scheme: dark;
 
-            /* Backgrounds */
             --bg-void: #030014;
             --bg-glass: rgba(20, 20, 35, 0.6);
-            --bg-glass-hover: rgba(255, 255, 255, 0.07);
+            --bg-glass-hover: rgba(255, 255, 255, 0.1);
             
-            /* Accents */
-            --accent-primary: #8b5cf6; /* Violet */
-            --accent-secondary: #06b6d4; /* Cyan */
-            --accent-root: #f43f5e; /* Rose */
-            --accent-user: #f59e0b; /* Amber */
-            --accent-guest: #10b981; /* Emerald */
+            --accent-primary: #8b5cf6; 
+            --accent-secondary: #06b6d4;
+            --accent-root: #f43f5e; 
+            --accent-user: #f59e0b;
+            --accent-guest: #10b981;
             
-            /* Borders & Glows */
             --border-light: rgba(255, 255, 255, 0.15);
             --glow-primary: 0 0 20px rgba(139, 92, 246, 0.3);
             
-            /* Text */
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
 
@@ -53,7 +48,7 @@
             background: radial-gradient(circle at 50% 0%, #1e1b4b, #030014 60%);
         }
 
-        /* --- TOP BAR --- */
+        /* --- HEADER --- */
         header {
             display: flex; justify-content: space-between; align-items: center;
             background: var(--bg-glass);
@@ -62,7 +57,7 @@
             padding: 12px 24px;
             border-radius: 16px;
             box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
-            z-index: 100;
+            z-index: 1000; 
             margin: 0 20px;
         }
 
@@ -96,7 +91,9 @@
             color: var(--text-main);
             border-color: var(--text-main);
             transform: translateY(-2px);
+            box-shadow: 0 0 10px rgba(255,255,255,0.1);
         }
+        .btn-icon:active { transform: translateY(0); }
 
         .btn-reset {
             background: rgba(244, 63, 94, 0.15);
@@ -112,7 +109,7 @@
             box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
         }
 
-        /* --- MAIN STAGE --- */
+        /* --- LAYOUT --- */
         .layout {
             display: grid;
             grid-template-columns: 1fr 340px;
@@ -137,17 +134,15 @@
 
         #wire-layer { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; }
 
-        /* KERNEL CORE */
+        /* KERNEL NODE */
         .kernel-node {
             position: absolute; left: 50%; top: 50%;
             transform: translate(-50%, -50%);
             width: 240px; height: 160px;
-            
             background: rgba(15, 23, 42, 0.7);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(139, 92, 246, 0.3);
             box-shadow: 0 0 60px rgba(139, 92, 246, 0.1);
-            
             border-radius: 20px;
             z-index: 10;
             display: flex; flex-direction: column; align-items: center;
@@ -176,7 +171,7 @@
             font-family: var(--font-code); font-size: 10px; color: var(--text-muted);
             display: flex; justify-content: space-between; align-items: center;
             border-radius: 0 4px 4px 0;
-            animation: slideIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            animation: slideIn 0.3s;
         }
         .msg-payload { color: #fff; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
         @keyframes slideIn { from { opacity:0; transform: translateX(-10px); } to { opacity:1; transform: translateX(0); } }
@@ -192,10 +187,29 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             z-index: 5;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            transition: transform 0.2s;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy pop */
+            cursor: default;
         }
-        .node:hover { transform: scale(1.1); z-index: 20; border-color: var(--text-main); }
-        
+        /* HOVER POP EFFECT */
+        .node:hover {
+            transform: scale(1.15);
+            border-color: var(--text-main);
+            box-shadow: 0 0 30px rgba(255,255,255,0.15);
+            z-index: 50;
+        }
+
+        /* Ghost Node for Death Animation */
+        .node.ghost {
+            pointer-events: none;
+            animation: glitchDeath 0.6s forwards;
+        }
+        @keyframes glitchDeath {
+            0% { transform: scale(1) skew(0deg); filter: hue-rotate(0deg); }
+            20% { transform: scale(1.1) skew(10deg); filter: hue-rotate(90deg); border-color: red; }
+            40% { transform: scale(0.9) skew(-10deg); opacity: 0.8; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
         .node span { font-family: var(--font-display); font-weight: 500; font-size: 12px; }
         .pid {
             font-family: var(--font-code); font-size: 9px;
@@ -226,37 +240,35 @@
 
         .input-group { display: flex; gap: 8px; margin-bottom: 20px; }
         
-        /* --- DROPDOWN FIXES --- */
         select, input[type="text"] {
             flex-grow: 1;
-            background: #0f172a; /* Solid dark background */
+            background: #0f172a;
             border: 1px solid var(--border-light);
             color: var(--text-main);
             padding: 10px; border-radius: 10px;
             font-family: var(--font-body); font-size: 12px;
             cursor: pointer; transition: 0.2s;
-            appearance: none; /* Removes default arrow */
+            appearance: none;
             background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px top 50%;
-            background-size: 8px auto;
+            background-repeat: no-repeat; background-position: right 12px top 50%; background-size: 8px auto;
         }
-        select:hover, input:hover { border-color: var(--accent-primary); }
-        select:focus, input:focus { border-color: var(--accent-primary); outline: none; }
+        select:hover { border-color: var(--accent-primary); }
+        select option { background-color: #0f172a; color: white; }
         
-        /* Specific fix for options */
-        select option {
-            background-color: #0f172a;
-            color: var(--text-main);
-            padding: 10px;
-        }
-
         .btn-add {
             width: 40px; background: var(--text-main); color: black;
             border: none; border-radius: 10px; font-size: 20px; cursor: pointer;
             transition: 0.2s;
         }
-        .btn-add:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(255,255,255,0.3); }
+        .btn-add:hover { transform: scale(1.05); }
+
+        .btn-kill {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            color: white; border: none; border-radius: 10px;
+            font-weight: 700; width: 100px; cursor: pointer; font-size: 11px;
+            transition: transform 0.1s;
+        }
+        .btn-kill:active { transform: scale(0.95); }
 
         .routing-grid {
             display: flex; flex-direction: column; gap: 12px;
@@ -269,19 +281,12 @@
             font-family: var(--font-display); font-weight: 600; font-size: 13px;
             cursor: pointer; border: none; transition: 0.2s;
         }
-        .btn-send {
-            background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
-            color: white; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
-        }
-        .btn-send:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(139, 92, 246, 0.5); }
+        .btn-send { background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary)); color: white; }
+        .btn-send:hover { transform: translateY(-2px); }
         
-        .btn-read {
-            background: rgba(255,255,255,0.05);
-            color: var(--text-main); border: 1px solid var(--border-light);
-        }
+        .btn-read { background: rgba(255,255,255,0.05); color: var(--text-main); border: 1px solid var(--border-light); }
         .btn-read:hover { background: rgba(255,255,255,0.1); }
 
-        /* TERMINAL */
         .terminal {
             flex-grow: 1;
             background: #000;
@@ -298,12 +303,15 @@
         .log-err { color: var(--accent-root); }
         .log-ok { color: var(--accent-guest); }
 
-        /* --- ANIMATIONS --- */
         .packet {
             position: absolute; width: 12px; height: 12px;
             background: #fff; border-radius: 50%;
             box-shadow: 0 0 15px #fff, 0 0 30px var(--accent-primary);
             z-index: 100;
+        }
+        .packet.skull {
+            background: var(--accent-root);
+            box-shadow: 0 0 15px var(--accent-root);
         }
         .packet-label {
             position: absolute; top: -30px; left: 50%; transform: translateX(-50%);
@@ -377,20 +385,20 @@
                     <button class="btn-add" onclick="sim.spawn()">+</button>
                 </div>
 
+                <span class="panel-label">Task Termination</span>
+                <div class="input-group" style="margin-bottom:20px;">
+                    <select id="killSelect"><option>Select PID...</option></select>
+                    <button class="btn-kill" onclick="sim.kill()">Terminate</button>
+                </div>
+
                 <div class="routing-grid">
                     <span class="panel-label" style="margin:0">Message Routing</span>
-                    
-                    <select id="senderSelect"><option>Select Sender...</option></select>
-                    
+                    <select id="senderSelect"><option>Sender...</option></select>
                     <div style="text-align:center; color:var(--border-light); font-size:10px;">▼</div>
-                    
-                    <select id="receiverSelect"><option>Select Receiver...</option></select>
-
-                    <!-- NEW FEATURE: PAYLOAD INPUT -->
+                    <select id="receiverSelect"><option>Receiver...</option></select>
                     <div style="margin-top:4px;">
-                        <input type="text" id="payloadInput" placeholder="Data Payload (e.g., 0xAF3, HELLO)" style="width:100%; font-family:var(--font-code);">
+                        <input type="text" id="payloadInput" placeholder="Data Payload (e.g. 0xAF3)" style="width:100%; font-family:var(--font-code);">
                     </div>
-                    
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
                         <button class="btn-action btn-send" onclick="sim.send()">TRANSMIT</button>
                         <button class="btn-action btn-read" onclick="sim.read()">RECEIVE</button>
@@ -399,7 +407,7 @@
             </div>
 
             <div class="terminal" id="terminal">
-                <div class="log-entry log-sys"><span class="log-time">[INIT]</span> Nebula Kernel v2.0 Loaded...</div>
+                <div class="log-entry log-sys"><span class="log-time">[INIT]</span> Nebula Kernel v5.0 (Stable)...</div>
             </div>
         </aside>
     </div>
@@ -439,10 +447,12 @@
                 this.loop();
             }
 
-            // --- STATE ---
+            // --- STATE SYSTEM (Commit-After-Write) ---
             snapshot() {
                 return {
-                    processes: this.procs.map(p => ({...p, el: null})),
+                    processes: this.procs.map(p => ({
+                        id: p.id, name: p.name, type: p.type, x: p.x, y: p.y
+                    })),
                     buffer: JSON.parse(JSON.stringify(this.buffer)),
                     pid: this.pid,
                     logHTML: this.term.innerHTML
@@ -461,7 +471,10 @@
                 this.term.innerHTML = state.logHTML;
                 this.term.scrollTop = this.term.scrollHeight;
 
-                this.procs.forEach(p => p.el && p.el.remove());
+                // Clear DOM
+                this.procs.forEach(p => { if(p.el) p.el.remove(); });
+                
+                // Rebuild
                 this.procs = state.processes.map(data => {
                     const el = document.createElement('div');
                     el.className = `node ${data.type}`;
@@ -476,9 +489,9 @@
             }
 
             undo() {
-                if(this.history.length <= 1) return;
-                const curr = this.history.pop();
-                this.future.push(curr);
+                if(this.history.length <= 1) return; // Keep base state
+                const current = this.history.pop();
+                this.future.push(current);
                 this.restore(this.history[this.history.length - 1]);
             }
 
@@ -489,9 +502,8 @@
                 this.restore(next);
             }
 
-            // --- LOGIC ---
+            // --- ACTIONS ---
             spawn(type, name, save = true) {
-                if(save) this.saveState();
                 const t = type || document.getElementById('spawnType').value;
                 const n = name || `${t.toUpperCase()}_${this.pid}`;
                 const p = { id: this.pid++, name: n, type: t, el: null, x:0, y:0 };
@@ -506,54 +518,71 @@
                 this.placeNodes();
                 this.updateUI();
                 this.log(`Spawned Process: ${n}`, 'sys');
-            }
-
-            placeNodes() {
-                const cx = this.space.clientWidth / 2;
-                const cy = this.space.clientHeight / 2;
-                const r = 260; // Wider radius for breathing room
                 
-                this.procs.forEach((p, i) => {
-                    const count = this.procs.length;
-                    const angle = Math.PI + (Math.PI * (i + 1) / (count + 1));
-                    p.x = cx + Math.cos(angle) * r - 42; // centered
-                    p.y = cy + Math.sin(angle) * r * 0.6 - 42;
-                    
-                    if(p.el) {
-                        p.el.style.left = `${p.x}px`;
-                        p.el.style.top = `${p.y}px`;
-                    }
-                });
+                if(save) this.saveState(); // Save AFTER change
             }
 
-            check(s, r) {
-                if(s.id === r.id) return "Loopback Error";
-                if(s.type === 'root') return true;
-                if(s.type === 'guest') return r.type === 'guest' ? true : "Guest Restricted";
-                if(s.type === 'user') return r.type === 'root' ? "Root Protected" : true;
-                return true;
+            kill() {
+                const id = parseInt(document.getElementById('killSelect').value);
+                if(!id) return;
+                
+                const target = this.procs.find(p => p.id === id);
+                if(!target) return;
+
+                // --- ROOT IMMUNITY ---
+                if(target.type === 'root') {
+                    this.err('🛡️', `PERMISSION DENIED: Cannot kill ROOT (${target.name})`);
+                    return;
+                }
+
+                // Send visual kill packet
+                this.anim('kernel', target, 'SIGKILL', 'skull', () => {
+                    // Create Ghost Node for animation
+                    const ghost = target.el.cloneNode(true);
+                    ghost.classList.add('ghost');
+                    ghost.style.left = target.el.style.left;
+                    ghost.style.top = target.el.style.top;
+                    this.space.appendChild(ghost);
+                    setTimeout(() => ghost.remove(), 600);
+
+                    // INSTANT LOGIC REMOVAL (For State Integrity)
+                    this.procs = this.procs.filter(p => p.id !== id);
+                    if(target.el) target.el.remove();
+                    
+                    // GC
+                    const initialCount = this.buffer.length;
+                    this.buffer = this.buffer.filter(m => m.to !== id && m.from !== id);
+                    const cleaned = initialCount - this.buffer.length;
+
+                    this.placeNodes();
+                    this.renderBuf();
+                    this.updateUI();
+                    
+                    this.log(`[SIGKILL] Terminated ${target.name}.`, 'err');
+                    if(cleaned > 0) this.log(`[GC] Flushed ${cleaned} orphaned messages.`, 'sys');
+                    
+                    this.saveState(); // Save AFTER clean state reached
+                });
             }
 
             send() {
                 const sId = parseInt(document.getElementById('senderSelect').value);
                 const rId = parseInt(document.getElementById('receiverSelect').value);
-                let payload = document.getElementById('payloadInput').value.trim();
-                if(!payload) payload = "DATA"; // Default payload if empty
-
+                let payload = document.getElementById('payloadInput').value.trim() || "DATA";
+                
                 if(!sId || !rId) return;
-
                 const s = this.procs.find(p => p.id === sId);
                 const r = this.procs.find(p => p.id === rId);
 
                 if(s.id === r.id) { this.err('⛔', 'Loopback blocked'); return; }
 
-                this.anim(s, 'kernel', payload, () => {
+                this.anim(s, 'kernel', payload, 'normal', () => {
                     const res = this.check(s, r);
                     if(res === true) {
-                        this.saveState();
                         this.buffer.push({from:sId, to:rId, payload: payload});
                         this.renderBuf();
                         this.log(`Buffered [${payload}] for ${r.name}`, 'ok');
+                        this.saveState();
                     } else {
                         this.err('⛔', `Blocked: ${res}`);
                     }
@@ -572,16 +601,36 @@
 
                 if(idx === -1) { this.err('📭', 'Buffer Empty / No Msg'); return; }
 
-                // Get payload before removing
                 const msg = this.buffer[idx];
-                
-                this.saveState();
                 this.buffer.splice(idx, 1);
                 this.renderBuf();
                 
-                this.anim('kernel', r, msg.payload, () => {
+                this.anim('kernel', r, msg.payload, 'normal', () => {
                     this.log(`Received [${msg.payload}] by ${r.name}`, 'ok');
+                    this.saveState();
                 });
+            }
+
+            // --- HELPERS ---
+            placeNodes() {
+                const cx = this.space.clientWidth / 2;
+                const cy = this.space.clientHeight / 2;
+                const r = 260; 
+                this.procs.forEach((p, i) => {
+                    const count = this.procs.length;
+                    const angle = Math.PI + (Math.PI * (i + 1) / (count + 1));
+                    p.x = cx + Math.cos(angle) * r - 42;
+                    p.y = cy + Math.sin(angle) * r * 0.6 - 42;
+                    if(p.el) { p.el.style.left = `${p.x}px`; p.el.style.top = `${p.y}px`; }
+                });
+            }
+
+            check(s, r) {
+                if(s.id === r.id) return "Loopback Error";
+                if(s.type === 'root') return true;
+                if(s.type === 'guest') return r.type === 'guest' ? true : "Guest Restricted";
+                if(s.type === 'user') return r.type === 'root' ? "Root Protected" : true;
+                return true;
             }
 
             err(icon, msg) {
@@ -591,23 +640,17 @@
                 this.space.appendChild(el);
                 setTimeout(() => el.remove(), 1000);
                 this.log(msg, 'err');
-                
-                // Premium Shake
                 let i = 0;
                 const shake = setInterval(() => {
                     const off = (i++ % 2 === 0 ? 4 : -4);
                     this.kernel.style.transform = `translate(calc(-50% + ${off}px), -50%)`;
-                    if(i > 6) {
-                        clearInterval(shake);
-                        this.kernel.style.transform = `translate(-50%, -50%)`;
-                    }
+                    if(i > 6) { clearInterval(shake); this.kernel.style.transform = `translate(-50%, -50%)`; }
                 }, 30);
             }
 
             renderBuf() {
                 this.bufUI.innerHTML = '';
                 if(this.buffer.length === 0) return;
-                
                 this.buffer.forEach(m => {
                     const s = this.procs.find(p => p.id === m.from);
                     const r = this.procs.find(p => p.id === m.to);
@@ -622,28 +665,22 @@
                 });
             }
 
-            anim(from, to, text, cb) {
+            anim(from, to, text, type='normal', cb) {
                 const start = this.getPos(from);
                 const end = this.getPos(to);
-                
                 const p = document.createElement('div');
-                p.className = 'packet';
-                // Truncate text if too long for animation
-                const displayText = text.length > 8 ? text.substring(0,6)+'..' : text;
-                p.innerHTML = `<div class="packet-label">${displayText}</div>`;
+                p.className = type === 'skull' ? 'packet skull' : 'packet';
+                const disp = type === 'skull' ? 'SIGKILL' : (text.length>8 ? text.substring(0,6)+'..' : text);
+                p.innerHTML = `<div class="packet-label" style="${type==='skull'?'border-color:red;color:red':''}">${disp}</div>`;
                 this.space.appendChild(p);
-
                 const t0 = performance.now();
                 const step = (now) => {
                     const prog = Math.min((now - t0) / 800, 1);
                     const ease = prog < .5 ? 2 * prog * prog : -1 + (4 - 2 * prog) * prog;
-                    
                     const x = start.x + (end.x - start.x) * ease;
                     const y = start.y + (end.y - start.y) * ease;
-                    
-                    p.style.left = (x - 6) + 'px'; // center 12px
+                    p.style.left = (x - 6) + 'px';
                     p.style.top = (y - 6) + 'px';
-
                     if(prog < 1) requestAnimationFrame(step);
                     else { p.remove(); if(cb) cb(); }
                 };
@@ -662,18 +699,14 @@
             loop() {
                 this.ctx.clearRect(0,0, this.canvas.width, this.canvas.height);
                 const k = this.getPos('kernel');
-                
                 this.procs.forEach(p => {
                     const pc = this.getPos(p);
                     this.ctx.beginPath();
                     this.ctx.moveTo(k.x, k.y);
                     this.ctx.lineTo(pc.x, pc.y);
-                    
-                    // Premium Gradient Wire attempt using strokeStyle
                     const grad = this.ctx.createLinearGradient(k.x, k.y, pc.x, pc.y);
                     grad.addColorStop(0, 'rgba(139, 92, 246, 0.5)');
                     grad.addColorStop(1, 'rgba(255,255,255,0.05)');
-                    
                     this.ctx.strokeStyle = grad;
                     this.ctx.lineWidth = 2;
                     this.ctx.stroke();
@@ -684,15 +717,16 @@
             updateUI() {
                 const s = document.getElementById('senderSelect');
                 const r = document.getElementById('receiverSelect');
-                const sv = s.value, rv = r.value;
-                s.innerHTML = ''; r.innerHTML = '';
-                
+                const k = document.getElementById('killSelect');
+                const sv = s.value, rv = r.value, kv = k.value;
+                s.innerHTML = '<option value="">Sender...</option>'; 
+                r.innerHTML = '<option value="">Receiver...</option>';
+                k.innerHTML = '<option value="">Select PID...</option>';
                 this.procs.forEach(p => {
-                    const opt = `<option value="${p.id}">${p.name}</option>`;
-                    s.innerHTML += opt; r.innerHTML += opt;
+                    const opt = `<option value="${p.id}">${p.name} [${p.id}]</option>`;
+                    s.innerHTML += opt; r.innerHTML += opt; k.innerHTML += opt;
                 });
-                if(sv) s.value = sv;
-                if(rv) r.value = rv;
+                s.value = sv; r.value = rv; k.value = kv;
             }
 
             log(msg, type) {
@@ -707,7 +741,6 @@
                 this.canvas.height = this.space.clientHeight;
                 this.placeNodes();
             }
-            
             reset() { location.reload(); }
         }
 
