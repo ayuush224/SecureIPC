@@ -1,750 +1,242 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IPC_SIM // NEBULA_OS</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-    <style>
-        /* --- NEBULA THEME VARIABLES --- */
-        :root {
-            color-scheme: dark;
-
-            --bg-void: #030014;
-            --bg-glass: rgba(20, 20, 35, 0.6);
-            --bg-glass-hover: rgba(255, 255, 255, 0.1);
-            
-            --accent-primary: #8b5cf6; 
-            --accent-secondary: #06b6d4;
-            --accent-root: #f43f5e; 
-            --accent-user: #f59e0b;
-            --accent-guest: #10b981;
-            
-            --border-light: rgba(255, 255, 255, 0.15);
-            --glow-primary: 0 0 20px rgba(139, 92, 246, 0.3);
-            
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-
-            --font-display: 'Space Grotesk', sans-serif;
-            --font-body: 'Inter', sans-serif;
-            --font-code: 'JetBrains Mono', monospace;
-        }
-
-        * { box-sizing: border-box; user-select: none; outline: none; }
-
-        body {
-            margin: 0; padding: 20px;
-            background-color: var(--bg-void);
-            color: var(--text-main);
-            font-family: var(--font-body);
-            height: 100vh;
-            display: flex; flex-direction: column; gap: 24px;
-            overflow: hidden;
-            background: radial-gradient(circle at 50% 0%, #1e1b4b, #030014 60%);
-        }
-
-        /* --- HEADER --- */
-        header {
-            display: flex; justify-content: space-between; align-items: center;
-            background: var(--bg-glass);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--border-light);
-            padding: 12px 24px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
-            z-index: 1000; 
-            margin: 0 20px;
-        }
-
-        .brand {
-            font-family: var(--font-display);
-            font-weight: 700; font-size: 20px;
-            letter-spacing: -0.5px;
-            display: flex; align-items: center; gap: 10px;
-        }
-        .brand-icon {
-            width: 24px; height: 24px;
-            background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
-            border-radius: 6px;
-            box-shadow: var(--glow-primary);
-        }
-
-        .controls { display: flex; gap: 8px; }
-
-        .btn-icon {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid var(--border-light);
-            color: var(--text-muted);
-            width: 36px; height: 36px;
-            border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 16px; cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-icon:hover {
-            background: var(--bg-glass-hover);
-            color: var(--text-main);
-            border-color: var(--text-main);
-            transform: translateY(-2px);
-            box-shadow: 0 0 10px rgba(255,255,255,0.1);
-        }
-        .btn-icon:active { transform: translateY(0); }
-
-        .btn-reset {
-            background: rgba(244, 63, 94, 0.15);
-            border: 1px solid rgba(244, 63, 94, 0.3);
-            color: var(--accent-root);
-            padding: 0 16px; height: 36px;
-            border-radius: 8px;
-            font-family: var(--font-code); font-size: 11px; font-weight: 700;
-            cursor: pointer; transition: all 0.2s;
-        }
-        .btn-reset:hover {
-            background: var(--accent-root); color: white;
-            box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
-        }
-
-        /* --- LAYOUT --- */
-        .layout {
-            display: grid;
-            grid-template-columns: 1fr 340px;
-            gap: 24px;
-            padding: 0 20px;
-            height: 100%;
-            min-height: 0;
-        }
-
-        .kernel-space {
-            position: relative;
-            background: rgba(10, 10, 20, 0.4);
-            border: 1px solid var(--border-light);
-            border-radius: 24px;
-            overflow: hidden;
-            background-image: 
-                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
-            box-shadow: inset 0 0 80px rgba(0,0,0,0.8);
-        }
-
-        #wire-layer { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; }
-
-        /* KERNEL NODE */
-        .kernel-node {
-            position: absolute; left: 50%; top: 50%;
-            transform: translate(-50%, -50%);
-            width: 240px; height: 160px;
-            background: rgba(15, 23, 42, 0.7);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            box-shadow: 0 0 60px rgba(139, 92, 246, 0.1);
-            border-radius: 20px;
-            z-index: 10;
-            display: flex; flex-direction: column; align-items: center;
-            padding: 12px;
-            transition: transform 0.05s;
-        }
-        .kernel-header {
-            font-family: var(--font-code); font-size: 10px;
-            color: var(--accent-primary); letter-spacing: 2px; margin-bottom: 8px;
-            text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
-        }
-        .buffer-container {
-            width: 100%; flex-grow: 1;
-            background: rgba(0,0,0,0.3);
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.05);
-            overflow-y: auto;
-            padding: 6px; display: flex; flex-direction: column; gap: 6px;
-        }
-        .buffer-container::-webkit-scrollbar { width: 0; }
-
-        .msg-item {
-            background: linear-gradient(90deg, rgba(255,255,255,0.05), transparent);
-            border-left: 2px solid #fff;
-            padding: 8px 10px;
-            font-family: var(--font-code); font-size: 10px; color: var(--text-muted);
-            display: flex; justify-content: space-between; align-items: center;
-            border-radius: 0 4px 4px 0;
-            animation: slideIn 0.3s;
-        }
-        .msg-payload { color: #fff; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
-        @keyframes slideIn { from { opacity:0; transform: translateX(-10px); } to { opacity:1; transform: translateX(0); } }
-
-        /* PROCESS NODES */
-        .node {
-            position: absolute;
-            width: 84px; height: 84px;
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--border-light);
-            border-radius: 50%;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 5;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy pop */
-            cursor: default;
-        }
-        /* HOVER POP EFFECT */
-        .node:hover {
-            transform: scale(1.15);
-            border-color: var(--text-main);
-            box-shadow: 0 0 30px rgba(255,255,255,0.15);
-            z-index: 50;
-        }
-
-        /* Ghost Node for Death Animation */
-        .node.ghost {
-            pointer-events: none;
-            animation: glitchDeath 0.6s forwards;
-        }
-        @keyframes glitchDeath {
-            0% { transform: scale(1) skew(0deg); filter: hue-rotate(0deg); }
-            20% { transform: scale(1.1) skew(10deg); filter: hue-rotate(90deg); border-color: red; }
-            40% { transform: scale(0.9) skew(-10deg); opacity: 0.8; }
-            100% { transform: scale(0); opacity: 0; }
-        }
-
-        .node span { font-family: var(--font-display); font-weight: 500; font-size: 12px; }
-        .pid {
-            font-family: var(--font-code); font-size: 9px;
-            background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 100px;
-            margin-top: 4px; color: var(--text-muted);
-        }
-
-        .node.root { border-bottom: 2px solid var(--accent-root); }
-        .node.user { border-bottom: 2px solid var(--accent-user); }
-        .node.guest { border-bottom: 2px solid var(--accent-guest); }
-
-        /* --- SIDEBAR --- */
-        .sidebar { display: flex; flex-direction: column; gap: 20px; height: 100%; min-height: 0; }
-
-        .panel {
-            background: var(--bg-glass);
-            border: 1px solid var(--border-light);
-            border-radius: 20px;
-            padding: 20px;
-            backdrop-filter: blur(10px);
-        }
-
-        .panel-label {
-            font-family: var(--font-code); font-size: 10px; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
-            display: block;
-        }
-
-        .input-group { display: flex; gap: 8px; margin-bottom: 20px; }
-        
-        select, input[type="text"] {
-            flex-grow: 1;
-            background: #0f172a;
-            border: 1px solid var(--border-light);
-            color: var(--text-main);
-            padding: 10px; border-radius: 10px;
-            font-family: var(--font-body); font-size: 12px;
-            cursor: pointer; transition: 0.2s;
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-            background-repeat: no-repeat; background-position: right 12px top 50%; background-size: 8px auto;
-        }
-        select:hover { border-color: var(--accent-primary); }
-        select option { background-color: #0f172a; color: white; }
-        
-        .btn-add {
-            width: 40px; background: var(--text-main); color: black;
-            border: none; border-radius: 10px; font-size: 20px; cursor: pointer;
-            transition: 0.2s;
-        }
-        .btn-add:hover { transform: scale(1.05); }
-
-        .btn-kill {
-            background: linear-gradient(135deg, #ef4444, #b91c1c);
-            color: white; border: none; border-radius: 10px;
-            font-weight: 700; width: 100px; cursor: pointer; font-size: 11px;
-            transition: transform 0.1s;
-        }
-        .btn-kill:active { transform: scale(0.95); }
-
-        .routing-grid {
-            display: flex; flex-direction: column; gap: 12px;
-            background: rgba(0,0,0,0.2); padding: 16px; border-radius: 16px;
-            border: 1px solid var(--border-light);
-        }
-
-        .btn-action {
-            width: 100%; padding: 12px; border-radius: 10px;
-            font-family: var(--font-display); font-weight: 600; font-size: 13px;
-            cursor: pointer; border: none; transition: 0.2s;
-        }
-        .btn-send { background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary)); color: white; }
-        .btn-send:hover { transform: translateY(-2px); }
-        
-        .btn-read { background: rgba(255,255,255,0.05); color: var(--text-main); border: 1px solid var(--border-light); }
-        .btn-read:hover { background: rgba(255,255,255,0.1); }
-
-        .terminal {
-            flex-grow: 1;
-            background: #000;
-            border: 1px solid var(--border-light);
-            border-radius: 20px;
-            padding: 16px;
-            font-family: var(--font-code); font-size: 11px;
-            overflow-y: auto; min-height: 0;
-            box-shadow: inset 0 0 20px rgba(255,255,255,0.05);
-        }
-        .log-entry { margin-bottom: 6px; opacity: 0.8; }
-        .log-time { color: var(--text-muted); margin-right: 8px; opacity: 0.5; }
-        .log-sys { color: var(--accent-primary); }
-        .log-err { color: var(--accent-root); }
-        .log-ok { color: var(--accent-guest); }
-
-        .packet {
-            position: absolute; width: 12px; height: 12px;
-            background: #fff; border-radius: 50%;
-            box-shadow: 0 0 15px #fff, 0 0 30px var(--accent-primary);
-            z-index: 100;
-        }
-        .packet.skull {
-            background: var(--accent-root);
-            box-shadow: 0 0 15px var(--accent-root);
-        }
-        .packet-label {
-            position: absolute; top: -30px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.8); padding: 4px 8px; border-radius: 4px;
-            font-size: 10px; white-space: nowrap; color: var(--accent-secondary);
-            border: 1px solid var(--accent-secondary); font-family: var(--font-code);
-        }
-
-        .overlay-icon {
-            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-            font-size: 60px; z-index: 200; pointer-events: none;
-            filter: drop-shadow(0 0 20px rgba(0,0,0,0.8));
-            animation: popFade 0.8s forwards;
-        }
-        @keyframes popFade {
-            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-            40% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-            100% { transform: translate(-50%, -60%) scale(1); opacity: 0; }
-        }
-        
-        .legend {
-            position: absolute; bottom: 20px; left: 20px;
-            display: flex; gap: 16px;
-            font-family: var(--font-code); font-size: 10px; color: var(--text-muted);
-            background: rgba(0,0,0,0.5); padding: 8px 16px; border-radius: 100px;
-            border: 1px solid var(--border-light); pointer-events: none;
-        }
-        .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 4px; }
-    </style>
+    <title>IPC Shared Memory Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body>
 
-    <header>
-        <div class="brand">
-            <div class="brand-icon"></div>
-            Message Passing IPC
+<body class="min-h-screen bg-[#0f172a] text-white selection:bg-indigo-500/30 overflow-hidden">
+
+    <!-- Background Gradients -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 rounded-full blur-[120px]">
         </div>
-        <div class="controls">
-            <button class="btn-icon" onclick="sim.undo()" title="Undo (Ctrl+Z)">⎌</button>
-            <button class="btn-icon" onclick="sim.redo()" title="Redo (Ctrl+Y)">↻</button>
-            <div style="width:1px; background:var(--border-light); margin: 0 8px;"></div>
-            <button class="btn-reset" onclick="sim.reset()">SYSTEM REBOOT</button>
-        </div>
-    </header>
-
-    <div class="layout">
-        <div class="kernel-space" id="kernelSpace">
-            <canvas id="wire-layer"></canvas>
-            
-            <div class="kernel-node" id="kernelNode">
-                <div class="kernel-header">KERNEL BUFFER</div>
-                <div class="buffer-container" id="bufferContainer"></div>
-            </div>
-
-            <div class="legend">
-                <span><span class="dot" style="background:var(--accent-root)"></span>ROOT</span>
-                <span><span class="dot" style="background:var(--accent-user)"></span>USER</span>
-                <span><span class="dot" style="background:var(--accent-guest)"></span>GUEST</span>
-            </div>
-        </div>
-
-        <aside class="sidebar">
-            <div class="panel">
-                <span class="panel-label">Process Manager</span>
-                <div class="input-group">
-                    <select id="spawnType">
-                        <option value="root">ROOT (Admin)</option>
-                        <option value="user">USER (Standard)</option>
-                        <option value="guest">GUEST (Restricted)</option>
-                    </select>
-                    <button class="btn-add" onclick="sim.spawn()">+</button>
-                </div>
-
-                <span class="panel-label">Task Termination</span>
-                <div class="input-group" style="margin-bottom:20px;">
-                    <select id="killSelect"><option>Select PID...</option></select>
-                    <button class="btn-kill" onclick="sim.kill()">Terminate</button>
-                </div>
-
-                <div class="routing-grid">
-                    <span class="panel-label" style="margin:0">Message Routing</span>
-                    <select id="senderSelect"><option>Sender...</option></select>
-                    <div style="text-align:center; color:var(--border-light); font-size:10px;">▼</div>
-                    <select id="receiverSelect"><option>Receiver...</option></select>
-                    <div style="margin-top:4px;">
-                        <input type="text" id="payloadInput" placeholder="Data Payload (e.g. 0xAF3)" style="width:100%; font-family:var(--font-code);">
-                    </div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
-                        <button class="btn-action btn-send" onclick="sim.send()">TRANSMIT</button>
-                        <button class="btn-action btn-read" onclick="sim.read()">RECEIVE</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="terminal" id="terminal">
-                <div class="log-entry log-sys"><span class="log-time">[INIT]</span> Nebula Kernel v5.0 (Stable)...</div>
-            </div>
-        </aside>
     </div>
 
-    <script>
-        class Sim {
-            constructor() {
-                this.procs = [];
-                this.buffer = [];
-                this.pid = 100;
-                this.history = [];
-                this.future = [];
+    <div class="relative z-10 container mx-auto p-4 md:p-8 h-screen flex flex-col gap-6">
 
-                this.space = document.getElementById('kernelSpace');
-                this.kernel = document.getElementById('kernelNode');
-                this.bufUI = document.getElementById('bufferContainer');
-                this.canvas = document.getElementById('wire-layer');
-                this.ctx = this.canvas.getContext('2d');
-                this.term = document.getElementById('terminal');
+        <!-- Header -->
+        <header class="flex items-center gap-4 pb-4 border-b border-white/10 shrink-0">
+            <div class="p-3 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
+                <i data-lucide="cpu" class="w-8 h-8 text-indigo-400"></i>
+            </div>
+            <div>
+                <h1
+                    class="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
+                    IPC Shared Memory Simulation
+                </h1>
+                <p class="text-white/40 text-sm">Priority-based scheduling with Aging & Semaphores</p>
+            </div>
+        </header>
 
-                window.addEventListener('resize', () => this.resize());
-                
-                document.addEventListener('keydown', (e) => {
-                    if (e.ctrlKey || e.metaKey) {
-                        if (e.key === 'z') { e.preventDefault(); this.undo(); }
-                        if (e.key === 'y') { e.preventDefault(); this.redo(); }
-                    }
-                });
+        <!-- Main Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0">
 
-                // Initialize Permanent Processes
-                this.spawn('root', 'SYS_ROOT', false);
-                this.spawn('user', 'SYS_USER', false);
-                this.spawn('guest', 'SYS_GUEST', false);
-                this.saveState(); // Base State
+            <!-- Left Column: Queues -->
+            <div class="lg:col-span-3 flex flex-col gap-4 min-h-0">
+                <!-- Read Queue -->
+                <div class="glass rounded-xl p-4 flex flex-col h-1/3 border-blue-500/30 shadow-blue-900/20">
+                    <div class="flex items-center gap-2 mb-4 text-white/90 shrink-0">
+                        <i data-lucide="layers" class="w-5 h-5 text-blue-400"></i>
+                        <h2 class="text-lg font-semibold">Read Queue</h2>
+                        <span id="read-count-badge" class="ml-auto text-xs bg-white/10 px-2 py-1 rounded-full">0</span>
+                    </div>
+                    <div id="read-queue" class="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar"></div>
+                </div>
 
-                this.resize();
-                this.loop();
-            }
+                <!-- Write Queue -->
+                <div class="glass rounded-xl p-4 flex flex-col h-1/3 border-amber-500/30 shadow-amber-900/20">
+                    <div class="flex items-center gap-2 mb-4 text-white/90 shrink-0">
+                        <i data-lucide="pen-tool" class="w-5 h-5 text-amber-400"></i>
+                        <h2 class="text-lg font-semibold">Write Queue</h2>
+                        <span id="write-count-badge" class="ml-auto text-xs bg-white/10 px-2 py-1 rounded-full">0</span>
+                    </div>
+                    <div id="write-queue" class="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar"></div>
+                </div>
 
-            // --- STATE SYSTEM (Commit-After-Write) ---
-            snapshot() {
-                return {
-                    processes: this.procs.map(p => ({
-                        id: p.id, name: p.name, type: p.type, x: p.x, y: p.y
-                    })),
-                    buffer: JSON.parse(JSON.stringify(this.buffer)),
-                    pid: this.pid,
-                    logHTML: this.term.innerHTML
-                };
-            }
+                <!-- Erase Queue -->
+                <div class="glass rounded-xl p-4 flex flex-col h-1/3 border-red-500/30 shadow-red-900/20">
+                    <div class="flex items-center gap-2 mb-4 text-white/90 shrink-0">
+                        <i data-lucide="trash-2" class="w-5 h-5 text-red-400"></i>
+                        <h2 class="text-lg font-semibold">Erase Queue</h2>
+                        <span id="erase-count-badge" class="ml-auto text-xs bg-white/10 px-2 py-1 rounded-full">0</span>
+                    </div>
+                    <div id="erase-queue" class="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar"></div>
+                </div>
+            </div>
 
-            saveState() {
-                this.history.push(this.snapshot());
-                this.future = [];
-                if(this.history.length > 50) this.history.shift();
-            }
+            <!-- Middle Column: State & Controls -->
+            <div class="lg:col-span-6 flex flex-col gap-6">
+                <!-- Memory State -->
+                <div
+                    class="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 backdrop-blur-xl rounded-2xl p-6 border border-white/10 shadow-2xl shrink-0">
+                    <div class="flex items-center gap-3 mb-6">
+                        <i data-lucide="database" class="w-6 h-6 text-indigo-400"></i>
+                        <h2 class="text-xl font-bold text-white">Shared Memory State</h2>
+                    </div>
 
-            restore(state) {
-                this.pid = state.pid;
-                this.buffer = state.buffer;
-                this.term.innerHTML = state.logHTML;
-                this.term.scrollTop = this.term.scrollHeight;
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div
+                            class="p-4 rounded-xl border bg-emerald-500/20 border-emerald-500/30 text-emerald-200 flex flex-col items-center justify-center">
+                            <div class="flex items-center gap-2 mb-1 opacity-80">
+                                <i data-lucide="lock" class="w-4 h-4"></i>
+                                <span class="text-xs font-medium uppercase tracking-wider">Semaphore</span>
+                            </div>
+                            <div class="text-3xl font-bold">
+                                <span id="val-semaphore">0</span>
+                                <span class="text-sm opacity-50 font-normal">/<span id="val-total">5</span></span>
+                            </div>
+                        </div>
+                        <div
+                            class="p-4 rounded-xl border bg-blue-500/20 border-blue-500/30 text-blue-200 flex flex-col items-center justify-center relative overflow-hidden">
+                            <div class="flex items-center gap-2 mb-1 opacity-80">
+                                <i data-lucide="users" class="w-4 h-4"></i>
+                                <span class="text-xs font-medium uppercase tracking-wider">Readers</span>
+                            </div>
+                            <div id="val-readers" class="text-3xl font-bold">0</div>
+                            <div id="timer-readers" class="text-[10px] font-mono mt-1 text-blue-100/70 h-4"></div>
+                        </div>
+                        <div
+                            class="p-4 rounded-xl border bg-amber-500/20 border-amber-500/30 text-amber-200 flex flex-col items-center justify-center relative overflow-hidden">
+                            <div class="flex items-center gap-2 mb-1 opacity-80">
+                                <i data-lucide="users" class="w-4 h-4"></i>
+                                <span class="text-xs font-medium uppercase tracking-wider">Writers</span>
+                            </div>
+                            <div id="val-writers" class="text-3xl font-bold">0</div>
+                            <div id="timer-writers" class="text-[10px] font-mono mt-1 text-amber-100/70 h-4"></div>
+                        </div>
+                        <div
+                            class="p-4 rounded-xl border bg-red-500/20 border-red-500/30 text-red-200 flex flex-col items-center justify-center relative overflow-hidden">
+                            <div class="flex items-center gap-2 mb-1 opacity-80">
+                                <i data-lucide="users" class="w-4 h-4"></i>
+                                <span class="text-xs font-medium uppercase tracking-wider">Erasers</span>
+                            </div>
+                            <div id="val-erasers" class="text-3xl font-bold">0</div>
+                            <div id="timer-erasers" class="text-[10px] font-mono mt-1 text-red-100/70 h-4"></div>
+                        </div>
+                    </div>
 
-                // Clear DOM
-                this.procs.forEach(p => { if(p.el) p.el.remove(); });
-                
-                // Rebuild
-                this.procs = state.processes.map(data => {
-                    const el = document.createElement('div');
-                    el.className = `node ${data.type}`;
-                    el.innerHTML = `<span>${data.name}</span><div class="pid">PID:${data.id}</div>`;
-                    this.space.appendChild(el);
-                    return { ...data, el: el };
-                });
+                    <!-- Visual Buffer -->
+                    <div class="mt-8">
+                        <div class="flex justify-between text-xs text-white/50 mb-2">
+                            <span>Buffer Usage</span>
+                            <span id="buffer-usage-text">0 / 5</span>
+                        </div>
+                        <div id="buffer-visual" class="h-4 bg-white/10 rounded-full overflow-hidden flex">
+                            <!-- Buffer segments injected here -->
+                        </div>
+                    </div>
+                </div>
 
-                this.placeNodes();
-                this.renderBuf();
-                this.updateUI();
-            }
+                <!-- Controls -->
+                <div class="glass rounded-xl p-6 border border-white/10 shadow-xl flex-1">
+                    <h3 class="text-lg font-semibold text-white mb-4">Controls</h3>
 
-            undo() {
-                if(this.history.length <= 1) return; // Keep base state
-                const current = this.history.pop();
-                this.future.push(current);
-                this.restore(this.history[this.history.length - 1]);
-            }
+                    <div class="space-y-6">
+                        <!-- Add Process -->
+                        <div class="space-y-3">
+                            <label class="text-xs text-white/50 uppercase tracking-wider font-medium">Add
+                                Process</label>
+                            <div class="flex gap-4">
+                                <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg flex-1">
+                                    <span class="text-sm text-white/70 pl-2">Priority:</span>
+                                    <input type="number" id="priority-input" value="10"
+                                        class="bg-transparent border-b border-white/20 text-white w-full text-center focus:outline-none focus:border-indigo-500 transition-colors">
+                                </div>
+                                <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg flex-1">
+                                    <span class="text-sm text-white/70 pl-2">Aging:</span>
+                                    <input type="number" id="aging-input" value="5" onchange="app.updateAgingFactor()"
+                                        class="bg-transparent border-b border-white/20 text-white w-full text-center focus:outline-none focus:border-indigo-500 transition-colors">
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg flex-1">
+                                    <span class="text-sm text-white/70 pl-2">Time (s):</span>
+                                    <input type="number" id="quantum-input" value="30"
+                                        onchange="app.updateQuantumTime()"
+                                        class="bg-transparent border-b border-white/20 text-white w-full text-center focus:outline-none focus:border-indigo-500 transition-colors">
+                                </div>
+                                <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg flex-1">
+                                    <span class="text-sm text-white/70 pl-2">Buffer:</span>
+                                    <input type="number" id="buffer-input" value="5" onchange="app.updateBufferSize()"
+                                        class="bg-transparent border-b border-white/20 text-white w-full text-center focus:outline-none focus:border-indigo-500 transition-colors">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button onclick="app.addProcess('READ')"
+                                    class="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                    <i data-lucide="plus" class="w-4 h-4"></i> Read
+                                </button>
+                                <button onclick="app.addProcess('WRITE')"
+                                    class="flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                    <i data-lucide="plus" class="w-4 h-4"></i> Write
+                                </button>
+                                <button onclick="app.addProcess('ERASE')"
+                                    class="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                    <i data-lucide="plus" class="w-4 h-4"></i> Erase
+                                </button>
+                            </div>
+                        </div>
 
-            redo() {
-                if(this.future.length === 0) return;
-                const next = this.future.pop();
-                this.history.push(next);
-                this.restore(next);
-            }
+                        <div class="h-px bg-white/10"></div>
 
-            // --- ACTIONS ---
-            spawn(type, name, save = true) {
-                const t = type || document.getElementById('spawnType').value;
-                const n = name || `${t.toUpperCase()}_${this.pid}`;
-                const p = { id: this.pid++, name: n, type: t, el: null, x:0, y:0 };
-                
-                const el = document.createElement('div');
-                el.className = `node ${t}`;
-                el.innerHTML = `<span>${n}</span><div class="pid">PID:${p.id}</div>`;
-                this.space.appendChild(el);
-                p.el = el;
-                
-                this.procs.push(p);
-                this.placeNodes();
-                this.updateUI();
-                this.log(`Spawned Process: ${n}`, 'sys');
-                
-                if(save) this.saveState(); // Save AFTER change
-            }
+                        <!-- Signal -->
+                        <div class="space-y-3">
+                            <label class="text-xs text-white/50 uppercase tracking-wider font-medium">Manual Signal
+                                (Release)</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button onclick="app.signal('READ')"
+                                    class="flex items-center justify-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 border border-blue-500/30 py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                    <i data-lucide="skip-forward" class="w-4 h-4"></i> Read
+                                </button>
+                                <button onclick="app.signal('WRITE')"
+                                    class="flex items-center justify-center gap-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                    <i data-lucide="skip-forward" class="w-4 h-4"></i> Write
+                                </button>
+                                <button onclick="app.signal('ERASE')"
+                                    class="flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30 py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
+                                    <i data-lucide="skip-forward" class="w-4 h-4"></i> Erase
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-            kill() {
-                const id = parseInt(document.getElementById('killSelect').value);
-                if(!id) return;
-                
-                const target = this.procs.find(p => p.id === id);
-                if(!target) return;
+            <!-- Right Column: Logs -->
+            <div class="lg:col-span-3 min-h-0">
+                <div
+                    class="bg-black/40 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden flex flex-col h-full">
+                    <div class="bg-white/5 p-3 flex items-center justify-between border-b border-white/10 shrink-0">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="terminal" class="w-4 h-4 text-white/60"></i>
+                            <span class="text-xs font-mono text-white/60 uppercase tracking-wider">System Logs</span>
+                        </div>
+                        <button onclick="app.clearLogs()"
+                            class="text-white/40 hover:text-white/80 transition-colors p-1 rounded hover:bg-white/10"
+                            title="Clear Logs">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                    <div id="log-container"
+                        class="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-1 custom-scrollbar">
+                        <div class="text-white/30 italic">System ready...</div>
+                    </div>
+                </div>
+            </div>
 
-                // --- ROOT IMMUNITY ---
-                if(target.type === 'root') {
-                    this.err('🛡️', `PERMISSION DENIED: Cannot kill ROOT (${target.name})`);
-                    return;
-                }
+        </div>
+    </div>
 
-                // Send visual kill packet
-                this.anim('kernel', target, 'SIGKILL', 'skull', () => {
-                    // Create Ghost Node for animation
-                    const ghost = target.el.cloneNode(true);
-                    ghost.classList.add('ghost');
-                    ghost.style.left = target.el.style.left;
-                    ghost.style.top = target.el.style.top;
-                    this.space.appendChild(ghost);
-                    setTimeout(() => ghost.remove(), 600);
-
-                    // INSTANT LOGIC REMOVAL (For State Integrity)
-                    this.procs = this.procs.filter(p => p.id !== id);
-                    if(target.el) target.el.remove();
-                    
-                    // GC
-                    const initialCount = this.buffer.length;
-                    this.buffer = this.buffer.filter(m => m.to !== id && m.from !== id);
-                    const cleaned = initialCount - this.buffer.length;
-
-                    this.placeNodes();
-                    this.renderBuf();
-                    this.updateUI();
-                    
-                    this.log(`[SIGKILL] Terminated ${target.name}.`, 'err');
-                    if(cleaned > 0) this.log(`[GC] Flushed ${cleaned} orphaned messages.`, 'sys');
-                    
-                    this.saveState(); // Save AFTER clean state reached
-                });
-            }
-
-            send() {
-                const sId = parseInt(document.getElementById('senderSelect').value);
-                const rId = parseInt(document.getElementById('receiverSelect').value);
-                let payload = document.getElementById('payloadInput').value.trim() || "DATA";
-                
-                if(!sId || !rId) return;
-                const s = this.procs.find(p => p.id === sId);
-                const r = this.procs.find(p => p.id === rId);
-
-                if(s.id === r.id) { this.err('⛔', 'Loopback blocked'); return; }
-
-                this.anim(s, 'kernel', payload, 'normal', () => {
-                    const res = this.check(s, r);
-                    if(res === true) {
-                        this.buffer.push({from:sId, to:rId, payload: payload});
-                        this.renderBuf();
-                        this.log(`Buffered [${payload}] for ${r.name}`, 'ok');
-                        this.saveState();
-                    } else {
-                        this.err('⛔', `Blocked: ${res}`);
-                    }
-                });
-            }
-
-            read() {
-                const sId = parseInt(document.getElementById('senderSelect').value);
-                const rId = parseInt(document.getElementById('receiverSelect').value);
-                if(!sId || !rId) return;
-
-                if(sId === rId) { this.err('⛔', 'Loopback blocked'); return; }
-
-                const r = this.procs.find(p => p.id === rId);
-                const idx = this.buffer.findIndex(m => m.to === rId && m.from === sId);
-
-                if(idx === -1) { this.err('📭', 'Buffer Empty / No Msg'); return; }
-
-                const msg = this.buffer[idx];
-                this.buffer.splice(idx, 1);
-                this.renderBuf();
-                
-                this.anim('kernel', r, msg.payload, 'normal', () => {
-                    this.log(`Received [${msg.payload}] by ${r.name}`, 'ok');
-                    this.saveState();
-                });
-            }
-
-            // --- HELPERS ---
-            placeNodes() {
-                const cx = this.space.clientWidth / 2;
-                const cy = this.space.clientHeight / 2;
-                const r = 260; 
-                this.procs.forEach((p, i) => {
-                    const count = this.procs.length;
-                    const angle = Math.PI + (Math.PI * (i + 1) / (count + 1));
-                    p.x = cx + Math.cos(angle) * r - 42;
-                    p.y = cy + Math.sin(angle) * r * 0.6 - 42;
-                    if(p.el) { p.el.style.left = `${p.x}px`; p.el.style.top = `${p.y}px`; }
-                });
-            }
-
-            check(s, r) {
-                if(s.id === r.id) return "Loopback Error";
-                if(s.type === 'root') return true;
-                if(s.type === 'guest') return r.type === 'guest' ? true : "Guest Restricted";
-                if(s.type === 'user') return r.type === 'root' ? "Root Protected" : true;
-                return true;
-            }
-
-            err(icon, msg) {
-                const el = document.createElement('div');
-                el.className = 'overlay-icon';
-                el.innerHTML = icon;
-                this.space.appendChild(el);
-                setTimeout(() => el.remove(), 1000);
-                this.log(msg, 'err');
-                let i = 0;
-                const shake = setInterval(() => {
-                    const off = (i++ % 2 === 0 ? 4 : -4);
-                    this.kernel.style.transform = `translate(calc(-50% + ${off}px), -50%)`;
-                    if(i > 6) { clearInterval(shake); this.kernel.style.transform = `translate(-50%, -50%)`; }
-                }, 30);
-            }
-
-            renderBuf() {
-                this.bufUI.innerHTML = '';
-                if(this.buffer.length === 0) return;
-                this.buffer.forEach(m => {
-                    const s = this.procs.find(p => p.id === m.from);
-                    const r = this.procs.find(p => p.id === m.to);
-                    if(s && r) {
-                        const d = document.createElement('div');
-                        d.className = 'msg-item';
-                        const color = r.type==='root'?'var(--accent-root)':r.type==='user'?'var(--accent-user)':'var(--accent-guest)';
-                        d.style.borderLeftColor = color;
-                        d.innerHTML = `<span>${s.name}</span><span>➝</span><span class="msg-payload">${m.payload}</span><span>${r.name}</span>`;
-                        this.bufUI.appendChild(d);
-                    }
-                });
-            }
-
-            anim(from, to, text, type='normal', cb) {
-                const start = this.getPos(from);
-                const end = this.getPos(to);
-                const p = document.createElement('div');
-                p.className = type === 'skull' ? 'packet skull' : 'packet';
-                const disp = type === 'skull' ? 'SIGKILL' : (text.length>8 ? text.substring(0,6)+'..' : text);
-                p.innerHTML = `<div class="packet-label" style="${type==='skull'?'border-color:red;color:red':''}">${disp}</div>`;
-                this.space.appendChild(p);
-                const t0 = performance.now();
-                const step = (now) => {
-                    const prog = Math.min((now - t0) / 800, 1);
-                    const ease = prog < .5 ? 2 * prog * prog : -1 + (4 - 2 * prog) * prog;
-                    const x = start.x + (end.x - start.x) * ease;
-                    const y = start.y + (end.y - start.y) * ease;
-                    p.style.left = (x - 6) + 'px';
-                    p.style.top = (y - 6) + 'px';
-                    if(prog < 1) requestAnimationFrame(step);
-                    else { p.remove(); if(cb) cb(); }
-                };
-                requestAnimationFrame(step);
-            }
-
-            getPos(obj) {
-                if(obj === 'kernel') {
-                    const r = this.kernel.getBoundingClientRect();
-                    const s = this.space.getBoundingClientRect();
-                    return { x: r.left - s.left + r.width/2, y: r.top - s.top + r.height/2 };
-                }
-                return { x: obj.x + 42, y: obj.y + 42 };
-            }
-
-            loop() {
-                this.ctx.clearRect(0,0, this.canvas.width, this.canvas.height);
-                const k = this.getPos('kernel');
-                this.procs.forEach(p => {
-                    const pc = this.getPos(p);
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(k.x, k.y);
-                    this.ctx.lineTo(pc.x, pc.y);
-                    const grad = this.ctx.createLinearGradient(k.x, k.y, pc.x, pc.y);
-                    grad.addColorStop(0, 'rgba(139, 92, 246, 0.5)');
-                    grad.addColorStop(1, 'rgba(255,255,255,0.05)');
-                    this.ctx.strokeStyle = grad;
-                    this.ctx.lineWidth = 2;
-                    this.ctx.stroke();
-                });
-                requestAnimationFrame(() => this.loop());
-            }
-
-            updateUI() {
-                const s = document.getElementById('senderSelect');
-                const r = document.getElementById('receiverSelect');
-                const k = document.getElementById('killSelect');
-                const sv = s.value, rv = r.value, kv = k.value;
-                s.innerHTML = '<option value="">Sender...</option>'; 
-                r.innerHTML = '<option value="">Receiver...</option>';
-                k.innerHTML = '<option value="">Select PID...</option>';
-                this.procs.forEach(p => {
-                    const opt = `<option value="${p.id}">${p.name} [${p.id}]</option>`;
-                    s.innerHTML += opt; r.innerHTML += opt; k.innerHTML += opt;
-                });
-                s.value = sv; r.value = rv; k.value = kv;
-            }
-
-            log(msg, type) {
-                const c = type==='err'?'log-err':type==='ok'?'log-ok':'log-sys';
-                const t = new Date().toLocaleTimeString('en-US',{hour12:false});
-                this.term.insertAdjacentHTML('beforeend', `<div class="log-entry ${c}"><span class="log-time">[${t}]</span> ${msg}</div>`);
-                this.term.scrollTop = this.term.scrollHeight;
-            }
-
-            resize() {
-                this.canvas.width = this.space.clientWidth;
-                this.canvas.height = this.space.clientHeight;
-                this.placeNodes();
-            }
-            reset() { location.reload(); }
-        }
-
-        const sim = new Sim();
-    </script>
+    <!-- LOGIC SCRIPT -->
+    <script src="script.js"></script>
 </body>
+
 </html>
