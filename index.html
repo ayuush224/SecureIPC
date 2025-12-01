@@ -12,9 +12,12 @@
     <style>
         /* --- NEBULA THEME VARIABLES --- */
         :root {
+            /* Critical Fix: Tells browser to render native controls in dark mode */
+            color-scheme: dark;
+
             /* Backgrounds */
             --bg-void: #030014;
-            --bg-glass: rgba(255, 255, 255, 0.03);
+            --bg-glass: rgba(20, 20, 35, 0.6);
             --bg-glass-hover: rgba(255, 255, 255, 0.07);
             
             /* Accents */
@@ -25,7 +28,7 @@
             --accent-guest: #10b981; /* Emerald */
             
             /* Borders & Glows */
-            --border-light: rgba(255, 255, 255, 0.1);
+            --border-light: rgba(255, 255, 255, 0.15);
             --glow-primary: 0 0 20px rgba(139, 92, 246, 0.3);
             
             /* Text */
@@ -47,18 +50,17 @@
             height: 100vh;
             display: flex; flex-direction: column; gap: 24px;
             overflow: hidden;
-            /* Subtle animated gradient background */
             background: radial-gradient(circle at 50% 0%, #1e1b4b, #030014 60%);
         }
 
-        /* --- TOP BAR (Floating) --- */
+        /* --- TOP BAR --- */
         header {
             display: flex; justify-content: space-between; align-items: center;
             background: var(--bg-glass);
             backdrop-filter: blur(16px);
             border: 1px solid var(--border-light);
             padding: 12px 24px;
-            border-radius: 100px; /* Pill shape */
+            border-radius: 16px;
             box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
             z-index: 100;
             margin: 0 20px;
@@ -66,7 +68,7 @@
 
         .brand {
             font-family: var(--font-display);
-            font-weight: 700; font-size: 19px;
+            font-weight: 700; font-size: 20px;
             letter-spacing: -0.5px;
             display: flex; align-items: center; gap: 10px;
         }
@@ -80,11 +82,11 @@
         .controls { display: flex; gap: 8px; }
 
         .btn-icon {
-            background: transparent;
+            background: rgba(255,255,255,0.05);
             border: 1px solid var(--border-light);
             color: var(--text-muted);
             width: 36px; height: 36px;
-            border-radius: 50%;
+            border-radius: 8px;
             display: flex; align-items: center; justify-content: center;
             font-size: 16px; cursor: pointer;
             transition: all 0.2s;
@@ -93,15 +95,15 @@
             background: var(--bg-glass-hover);
             color: var(--text-main);
             border-color: var(--text-main);
-            transform: scale(1.05);
+            transform: translateY(-2px);
         }
 
         .btn-reset {
-            background: rgba(244, 63, 94, 0.1);
+            background: rgba(244, 63, 94, 0.15);
             border: 1px solid rgba(244, 63, 94, 0.3);
             color: var(--accent-root);
             padding: 0 16px; height: 36px;
-            border-radius: 18px;
+            border-radius: 8px;
             font-family: var(--font-code); font-size: 11px; font-weight: 700;
             cursor: pointer; transition: all 0.2s;
         }
@@ -117,7 +119,7 @@
             gap: 24px;
             padding: 0 20px;
             height: 100%;
-            min-height: 0; /* Flex fix */
+            min-height: 0;
         }
 
         .kernel-space {
@@ -126,7 +128,6 @@
             border: 1px solid var(--border-light);
             border-radius: 24px;
             overflow: hidden;
-            /* Tech grid pattern */
             background-image: 
                 linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
@@ -136,16 +137,16 @@
 
         #wire-layer { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; }
 
-        /* KERNEL CORE (The Heart) */
+        /* KERNEL CORE */
         .kernel-node {
             position: absolute; left: 50%; top: 50%;
             transform: translate(-50%, -50%);
-            width: 200px; height: 140px;
+            width: 240px; height: 160px;
             
-            background: rgba(15, 23, 42, 0.6);
+            background: rgba(15, 23, 42, 0.7);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(139, 92, 246, 0.3);
-            box-shadow: 0 0 50px rgba(139, 92, 246, 0.15);
+            box-shadow: 0 0 60px rgba(139, 92, 246, 0.1);
             
             border-radius: 20px;
             z-index: 10;
@@ -164,25 +165,26 @@
             border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.05);
             overflow-y: auto;
-            padding: 4px; display: flex; flex-direction: column; gap: 4px;
+            padding: 6px; display: flex; flex-direction: column; gap: 6px;
         }
         .buffer-container::-webkit-scrollbar { width: 0; }
 
         .msg-item {
             background: linear-gradient(90deg, rgba(255,255,255,0.05), transparent);
             border-left: 2px solid #fff;
-            padding: 6px 10px;
+            padding: 8px 10px;
             font-family: var(--font-code); font-size: 10px; color: var(--text-muted);
-            display: flex; justify-content: space-between;
+            display: flex; justify-content: space-between; align-items: center;
             border-radius: 0 4px 4px 0;
             animation: slideIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
+        .msg-payload { color: #fff; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
         @keyframes slideIn { from { opacity:0; transform: translateX(-10px); } to { opacity:1; transform: translateX(0); } }
 
         /* PROCESS NODES */
         .node {
             position: absolute;
-            width: 80px; height: 80px;
+            width: 84px; height: 84px;
             background: rgba(15, 23, 42, 0.8);
             backdrop-filter: blur(10px);
             border: 1px solid var(--border-light);
@@ -218,22 +220,36 @@
 
         .panel-label {
             font-family: var(--font-code); font-size: 10px; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
             display: block;
         }
 
         .input-group { display: flex; gap: 8px; margin-bottom: 20px; }
         
-        select {
+        /* --- DROPDOWN FIXES --- */
+        select, input[type="text"] {
             flex-grow: 1;
-            background: rgba(0,0,0,0.3);
+            background: #0f172a; /* Solid dark background */
             border: 1px solid var(--border-light);
             color: var(--text-main);
             padding: 10px; border-radius: 10px;
             font-family: var(--font-body); font-size: 12px;
             cursor: pointer; transition: 0.2s;
+            appearance: none; /* Removes default arrow */
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px top 50%;
+            background-size: 8px auto;
         }
-        select:hover { border-color: var(--accent-primary); }
+        select:hover, input:hover { border-color: var(--accent-primary); }
+        select:focus, input:focus { border-color: var(--accent-primary); outline: none; }
+        
+        /* Specific fix for options */
+        select option {
+            background-color: #0f172a;
+            color: var(--text-main);
+            padding: 10px;
+        }
 
         .btn-add {
             width: 40px; background: var(--text-main); color: black;
@@ -290,10 +306,10 @@
             z-index: 100;
         }
         .packet-label {
-            position: absolute; top: -25px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.8); padding: 2px 6px; border-radius: 4px;
-            font-size: 9px; white-space: nowrap; color: var(--accent-secondary);
-            border: 1px solid var(--accent-secondary);
+            position: absolute; top: -30px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); padding: 4px 8px; border-radius: 4px;
+            font-size: 10px; white-space: nowrap; color: var(--accent-secondary);
+            border: 1px solid var(--accent-secondary); font-family: var(--font-code);
         }
 
         .overlay-icon {
@@ -363,8 +379,17 @@
 
                 <div class="routing-grid">
                     <span class="panel-label" style="margin:0">Message Routing</span>
-                    <select id="senderSelect"><option>Sender...</option></select>
-                    <select id="receiverSelect"><option>Receiver...</option></select>
+                    
+                    <select id="senderSelect"><option>Select Sender...</option></select>
+                    
+                    <div style="text-align:center; color:var(--border-light); font-size:10px;">▼</div>
+                    
+                    <select id="receiverSelect"><option>Select Receiver...</option></select>
+
+                    <!-- NEW FEATURE: PAYLOAD INPUT -->
+                    <div style="margin-top:4px;">
+                        <input type="text" id="payloadInput" placeholder="Data Payload (e.g., 0xAF3, HELLO)" style="width:100%; font-family:var(--font-code);">
+                    </div>
                     
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
                         <button class="btn-action btn-send" onclick="sim.send()">TRANSMIT</button>
@@ -374,7 +399,7 @@
             </div>
 
             <div class="terminal" id="terminal">
-                <div class="log-entry log-sys"><span class="log-time">[INIT]</span> Nebula Kernel v1.0 Loaded...</div>
+                <div class="log-entry log-sys"><span class="log-time">[INIT]</span> Nebula Kernel v2.0 Loaded...</div>
             </div>
         </aside>
     </div>
@@ -491,8 +516,8 @@
                 this.procs.forEach((p, i) => {
                     const count = this.procs.length;
                     const angle = Math.PI + (Math.PI * (i + 1) / (count + 1));
-                    p.x = cx + Math.cos(angle) * r - 40; // -40 for half width
-                    p.y = cy + Math.sin(angle) * r * 0.6 - 40;
+                    p.x = cx + Math.cos(angle) * r - 42; // centered
+                    p.y = cy + Math.sin(angle) * r * 0.6 - 42;
                     
                     if(p.el) {
                         p.el.style.left = `${p.x}px`;
@@ -512,6 +537,9 @@
             send() {
                 const sId = parseInt(document.getElementById('senderSelect').value);
                 const rId = parseInt(document.getElementById('receiverSelect').value);
+                let payload = document.getElementById('payloadInput').value.trim();
+                if(!payload) payload = "DATA"; // Default payload if empty
+
                 if(!sId || !rId) return;
 
                 const s = this.procs.find(p => p.id === sId);
@@ -519,13 +547,13 @@
 
                 if(s.id === r.id) { this.err('⛔', 'Loopback blocked'); return; }
 
-                this.anim(s, 'kernel', `TO: ${r.name}`, () => {
+                this.anim(s, 'kernel', payload, () => {
                     const res = this.check(s, r);
                     if(res === true) {
                         this.saveState();
-                        this.buffer.push({from:sId, to:rId});
+                        this.buffer.push({from:sId, to:rId, payload: payload});
                         this.renderBuf();
-                        this.log(`Buffered message for ${r.name}`, 'ok');
+                        this.log(`Buffered [${payload}] for ${r.name}`, 'ok');
                     } else {
                         this.err('⛔', `Blocked: ${res}`);
                     }
@@ -544,12 +572,15 @@
 
                 if(idx === -1) { this.err('📭', 'Buffer Empty / No Msg'); return; }
 
+                // Get payload before removing
+                const msg = this.buffer[idx];
+                
                 this.saveState();
                 this.buffer.splice(idx, 1);
                 this.renderBuf();
                 
-                this.anim('kernel', r, 'DATA_PKT', () => {
-                    this.log(`Data received by ${r.name}`, 'ok');
+                this.anim('kernel', r, msg.payload, () => {
+                    this.log(`Received [${msg.payload}] by ${r.name}`, 'ok');
                 });
             }
 
@@ -585,7 +616,7 @@
                         d.className = 'msg-item';
                         const color = r.type==='root'?'var(--accent-root)':r.type==='user'?'var(--accent-user)':'var(--accent-guest)';
                         d.style.borderLeftColor = color;
-                        d.innerHTML = `<span>${s.name}</span><span>➝</span><span>${r.name}</span>`;
+                        d.innerHTML = `<span>${s.name}</span><span>➝</span><span class="msg-payload">${m.payload}</span><span>${r.name}</span>`;
                         this.bufUI.appendChild(d);
                     }
                 });
@@ -597,7 +628,9 @@
                 
                 const p = document.createElement('div');
                 p.className = 'packet';
-                p.innerHTML = `<div class="packet-label">${text}</div>`;
+                // Truncate text if too long for animation
+                const displayText = text.length > 8 ? text.substring(0,6)+'..' : text;
+                p.innerHTML = `<div class="packet-label">${displayText}</div>`;
                 this.space.appendChild(p);
 
                 const t0 = performance.now();
@@ -623,7 +656,7 @@
                     const s = this.space.getBoundingClientRect();
                     return { x: r.left - s.left + r.width/2, y: r.top - s.top + r.height/2 };
                 }
-                return { x: obj.x + 40, y: obj.y + 40 };
+                return { x: obj.x + 42, y: obj.y + 42 };
             }
 
             loop() {
