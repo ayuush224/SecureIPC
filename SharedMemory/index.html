@@ -5,238 +5,172 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IPC Shared Memory Simulation</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body class="min-h-screen bg-[#0f172a] text-white selection:bg-indigo-500/30 overflow-hidden">
+<body>
 
-    <!-- Background Gradients -->
-    <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px]"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 rounded-full blur-[120px]">
+    <header>
+        <div class="brand">
+            <i data-lucide="database" class="brand-icon" style="color:var(--accent-secondary)"></i>
+            Shared Memory IPC
         </div>
+
+        <div class="controls">
+            <button class="btn-reset" onclick="app.clearLogs()">CLEAR LOGS</button>
+            <div style="width:1px; background:var(--border-light); margin: 0 8px;"></div>
+            <button class="btn-reset"><a href="../index.html">MESSAGE PASSING</a></button>
+        </div>
+    </header>
+
+    <div class="layout">
+        <div class="visual-stack">
+            <!-- SHARED MEMORY VISUALIZATION -->
+            <div class="shm-space">
+
+                <div class="semaphore-grid">
+                    <div class="sem-box main">
+                        <span class="sem-label">SEMAPHORE</span>
+                        <div class="sem-value">
+                            <span id="val-semaphore">0</span>
+                            <span class="sem-sub">/<span id="val-total">5</span></span>
+                        </div>
+                    </div>
+
+                    <div class="sem-box read">
+                        <span class="sem-label">READERS</span>
+                        <div class="sem-value" id="val-readers">0</div>
+                        <div class="sem-timer" id="timer-readers"></div>
+                    </div>
+
+                    <div class="sem-box write">
+                        <span class="sem-label">WRITERS</span>
+                        <div class="sem-value" id="val-writers">0</div>
+                        <div class="sem-timer" id="timer-writers"></div>
+                    </div>
+
+                    <div class="sem-box erase">
+                        <span class="sem-label">ERASERS</span>
+                        <div class="sem-value" id="val-erasers">0</div>
+                        <div class="sem-timer" id="timer-erasers"></div>
+                    </div>
+                </div>
+
+                <div class="buffer-wrapper">
+                    <div class="buffer-header">
+                        <span>Physical Address Space</span>
+                        <span id="buffer-usage-text">0 / 5</span>
+                    </div>
+                    <div class="buffer-track" id="buffer-visual">
+                        <!-- Segments inserted by JS -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TERMINAL -->
+            <div class="terminal" id="terminal">
+                <div class="terminal-header">
+                    <div class="term-dots">
+                        <div class="t-dot" style="background:#ff5f56"></div>
+                        <div class="t-dot" style="background:#ffbd2e"></div>
+                        <div class="t-dot" style="background:#27c93f"></div>
+                    </div>
+                    <span style="color:#666">shm.log // ACTIVE</span>
+                </div>
+                <div id="log-container">
+                    <div class="log-entry" style="opacity:0.5">System ready...</div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="sidebar">
+
+            <div class="panel queue-stack">
+                <span class="panel-label">Process Schedulers</span>
+
+                <div class="queue-box q-read">
+                    <div class="queue-header">
+                        <span>READ QUEUE</span>
+                        <span id="read-count-badge">0</span>
+                    </div>
+                    <div id="read-queue"></div>
+                </div>
+
+                <div class="queue-box q-write">
+                    <div class="queue-header">
+                        <span>WRITE QUEUE</span>
+                        <span id="write-count-badge">0</span>
+                    </div>
+                    <div id="write-queue"></div>
+                </div>
+
+                <div class="queue-box q-erase">
+                    <div class="queue-header">
+                        <span>ERASE QUEUE</span>
+                        <span id="erase-count-badge">0</span>
+                    </div>
+                    <div id="erase-queue"></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <span class="panel-label">Process Manager</span>
+
+                <div class="input-group">
+                    <div class="input-col">
+                        <span class="input-label">Priority</span>
+                        <input type="number" id="priority-input" value="10">
+                    </div>
+                    <div class="input-col">
+                        <span class="input-label">Aging</span>
+                        <input type="number" id="aging-input" value="5" onchange="app.updateAgingFactor()">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <div class="input-col">
+                        <span class="input-label">Time (s)</span>
+                        <input type="number" id="quantum-input" value="30" onchange="app.updateQuantumTime()">
+                    </div>
+                    <div class="input-col">
+                        <span class="input-label">Buffer Size</span>
+                        <input type="number" id="buffer-input" value="5" onchange="app.updateBufferSize()">
+                    </div>
+                </div>
+
+                <span class="panel-label" style="margin-top:10px">Spawn Process</span>
+                <div class="btn-grid">
+                    <button class="btn-action btn-read" onclick="app.addProcess('READ')">READ</button>
+                    <button class="btn-action btn-write" onclick="app.addProcess('WRITE')">WRITE</button>
+                    <button class="btn-action btn-erase" onclick="app.addProcess('ERASE')">ERASE</button>
+                </div>
+
+                <span class="panel-label" style="margin-top:20px">Manual Signal</span>
+                <div class="btn-grid">
+                    <button class="btn-action btn-read btn-sig" onclick="app.signal('READ')">SIG_READ</button>
+                    <button class="btn-action btn-write btn-sig" onclick="app.signal('WRITE')">SIG_WRITE</button>
+                    <button class="btn-action btn-erase btn-sig" onclick="app.signal('ERASE')">SIG_ERASE</button>
+                </div>
+
+            </div>
+
+        </aside>
     </div>
 
-    <div class="relative z-10 container mx-auto p-4 md:p-8 h-screen flex flex-col gap-6">
-
-        <!-- Header -->
-        <header class="flex items-center gap-4 pb-4 border-b border-white/10 shrink-0">
-            <div class="p-3 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
-                <i data-lucide="cpu" class="w-8 h-8 text-indigo-400"></i>
-            </div>
-            <div>
-                <h1
-                    class="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
-                    IPC Shared Memory Simulation
-                </h1>
-                <p class="text-white/40 text-sm">Priority-based scheduling with Aging & Semaphores</p>
-            </div>
-        </header>
-
-        <!-- Main Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0">
-
-            <!-- Left Column: Queues -->
-            <div class="lg:col-span-3 flex flex-col gap-4 min-h-0">
-                <!-- Read Queue -->
-                <div class="glass rounded-xl p-4 flex flex-col h-1/3 border-blue-500/30 shadow-blue-900/20">
-                    <div class="flex items-center gap-2 mb-4 text-white/90 shrink-0">
-                        <i data-lucide="layers" class="w-5 h-5 text-blue-400"></i>
-                        <h2 class="text-lg font-semibold">Read Queue</h2>
-                        <span id="read-count-badge" class="ml-auto text-xs bg-white/10 px-2 py-1 rounded-full">0</span>
-                    </div>
-                    <div id="read-queue" class="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar"></div>
-                </div>
-
-                <!-- Write Queue -->
-                <div class="glass rounded-xl p-4 flex flex-col h-1/3 border-amber-500/30 shadow-amber-900/20">
-                    <div class="flex items-center gap-2 mb-4 text-white/90 shrink-0">
-                        <i data-lucide="pen-tool" class="w-5 h-5 text-amber-400"></i>
-                        <h2 class="text-lg font-semibold">Write Queue</h2>
-                        <span id="write-count-badge" class="ml-auto text-xs bg-white/10 px-2 py-1 rounded-full">0</span>
-                    </div>
-                    <div id="write-queue" class="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar"></div>
-                </div>
-
-                <!-- Erase Queue -->
-                <div class="glass rounded-xl p-4 flex flex-col h-1/3 border-red-500/30 shadow-red-900/20">
-                    <div class="flex items-center gap-2 mb-4 text-white/90 shrink-0">
-                        <i data-lucide="trash-2" class="w-5 h-5 text-red-400"></i>
-                        <h2 class="text-lg font-semibold">Erase Queue</h2>
-                        <span id="erase-count-badge" class="ml-auto text-xs bg-white/10 px-2 py-1 rounded-full">0</span>
-                    </div>
-                    <div id="erase-queue" class="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar"></div>
-                </div>
-            </div>
-
-            <!-- Middle Column: State & Controls -->
-            <div class="lg:col-span-6 flex flex-col gap-6">
-                <!-- Memory State -->
-                <div
-                    class="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 backdrop-blur-xl rounded-2xl p-6 border border-white/10 shadow-2xl shrink-0">
-                    <div class="flex items-center gap-3 mb-6">
-                        <i data-lucide="database" class="w-6 h-6 text-indigo-400"></i>
-                        <h2 class="text-xl font-bold text-white">Shared Memory State</h2>
-                    </div>
-
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div
-                            class="p-4 rounded-xl border bg-emerald-500/20 border-emerald-500/30 text-emerald-200 flex flex-col items-center justify-center">
-                            <div class="flex items-center gap-2 mb-1 opacity-80">
-                                <i data-lucide="lock" class="w-4 h-4"></i>
-                                <span class="text-xs font-medium uppercase tracking-wider">Semaphore</span>
-                            </div>
-                            <div class="text-3xl font-bold">
-                                <span id="val-semaphore">0</span>
-                                <span class="text-sm opacity-50 font-normal">/<span id="val-total">5</span></span>
-                            </div>
-                        </div>
-                        <div
-                            class="p-4 rounded-xl border bg-blue-500/20 border-blue-500/30 text-blue-200 flex flex-col items-center justify-center relative overflow-hidden">
-                            <div class="flex items-center gap-2 mb-1 opacity-80">
-                                <i data-lucide="users" class="w-4 h-4"></i>
-                                <span class="text-xs font-medium uppercase tracking-wider">Readers</span>
-                            </div>
-                            <div id="val-readers" class="text-3xl font-bold">0</div>
-                            <div id="timer-readers" class="text-[10px] font-mono mt-1 text-blue-100/70 h-4"></div>
-                        </div>
-                        <div
-                            class="p-4 rounded-xl border bg-amber-500/20 border-amber-500/30 text-amber-200 flex flex-col items-center justify-center relative overflow-hidden">
-                            <div class="flex items-center gap-2 mb-1 opacity-80">
-                                <i data-lucide="users" class="w-4 h-4"></i>
-                                <span class="text-xs font-medium uppercase tracking-wider">Writers</span>
-                            </div>
-                            <div id="val-writers" class="text-3xl font-bold">0</div>
-                            <div id="timer-writers" class="text-[10px] font-mono mt-1 text-amber-100/70 h-4"></div>
-                        </div>
-                        <div
-                            class="p-4 rounded-xl border bg-red-500/20 border-red-500/30 text-red-200 flex flex-col items-center justify-center relative overflow-hidden">
-                            <div class="flex items-center gap-2 mb-1 opacity-80">
-                                <i data-lucide="users" class="w-4 h-4"></i>
-                                <span class="text-xs font-medium uppercase tracking-wider">Erasers</span>
-                            </div>
-                            <div id="val-erasers" class="text-3xl font-bold">0</div>
-                            <div id="timer-erasers" class="text-[10px] font-mono mt-1 text-red-100/70 h-4"></div>
-                        </div>
-                    </div>
-
-                    <!-- Visual Buffer -->
-                    <div class="mt-8">
-                        <div class="flex justify-between text-xs text-white/50 mb-2">
-                            <span>Buffer Usage</span>
-                            <span id="buffer-usage-text">0 / 5</span>
-                        </div>
-                        <div id="buffer-visual" class="h-4 bg-white/10 rounded-full overflow-hidden flex">
-                            <!-- Buffer segments injected here -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Controls -->
-                <div class="glass rounded-xl p-6 border border-white/10 shadow-xl flex-1">
-                    <h3 class="text-lg font-semibold text-white mb-4">Controls</h3>
-
-                    <div class="space-y-6">
-                        <!-- Add Process -->
-                        <div class="space-y-3">
-                            <label class="text-xs text-white/50 uppercase tracking-wider font-medium">Add
-                                Process</label>
-                            <div class="flex gap-4">
-                                <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg flex-1">
-                                    <span class="text-sm text-white/70 pl-2">Priority:</span>
-                                    <input type="number" id="priority-input" value="10"
-                                        class="bg-transparent border-b border-white/20 text-white w-full text-center focus:outline-none focus:border-indigo-500 transition-colors">
-                                </div>
-                                <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg flex-1">
-                                    <span class="text-sm text-white/70 pl-2">Aging:</span>
-                                    <input type="number" id="aging-input" value="5" onchange="app.updateAgingFactor()"
-                                        class="bg-transparent border-b border-white/20 text-white w-full text-center focus:outline-none focus:border-indigo-500 transition-colors">
-                                </div>
-                            </div>
-                            <div class="flex gap-4">
-                                <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg flex-1">
-                                    <span class="text-sm text-white/70 pl-2">Time (s):</span>
-                                    <input type="number" id="quantum-input" value="30"
-                                        onchange="app.updateQuantumTime()"
-                                        class="bg-transparent border-b border-white/20 text-white w-full text-center focus:outline-none focus:border-indigo-500 transition-colors">
-                                </div>
-                                <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg flex-1">
-                                    <span class="text-sm text-white/70 pl-2">Buffer:</span>
-                                    <input type="number" id="buffer-input" value="5" onchange="app.updateBufferSize()"
-                                        class="bg-transparent border-b border-white/20 text-white w-full text-center focus:outline-none focus:border-indigo-500 transition-colors">
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-3 gap-2">
-                                <button onclick="app.addProcess('READ')"
-                                    class="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
-                                    <i data-lucide="plus" class="w-4 h-4"></i> Read
-                                </button>
-                                <button onclick="app.addProcess('WRITE')"
-                                    class="flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
-                                    <i data-lucide="plus" class="w-4 h-4"></i> Write
-                                </button>
-                                <button onclick="app.addProcess('ERASE')"
-                                    class="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
-                                    <i data-lucide="plus" class="w-4 h-4"></i> Erase
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="h-px bg-white/10"></div>
-
-                        <!-- Signal -->
-                        <div class="space-y-3">
-                            <label class="text-xs text-white/50 uppercase tracking-wider font-medium">Manual Signal
-                                (Release)</label>
-                            <div class="grid grid-cols-3 gap-2">
-                                <button onclick="app.signal('READ')"
-                                    class="flex items-center justify-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 border border-blue-500/30 py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
-                                    <i data-lucide="skip-forward" class="w-4 h-4"></i> Read
-                                </button>
-                                <button onclick="app.signal('WRITE')"
-                                    class="flex items-center justify-center gap-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
-                                    <i data-lucide="skip-forward" class="w-4 h-4"></i> Write
-                                </button>
-                                <button onclick="app.signal('ERASE')"
-                                    class="flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30 py-2 rounded-lg text-sm font-medium transition-all active:scale-95">
-                                    <i data-lucide="skip-forward" class="w-4 h-4"></i> Erase
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right Column: Logs -->
-            <div class="lg:col-span-3 min-h-0">
-                <div
-                    class="bg-black/40 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden flex flex-col h-full">
-                    <div class="bg-white/5 p-3 flex items-center justify-between border-b border-white/10 shrink-0">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="terminal" class="w-4 h-4 text-white/60"></i>
-                            <span class="text-xs font-mono text-white/60 uppercase tracking-wider">System Logs</span>
-                        </div>
-                        <button onclick="app.clearLogs()"
-                            class="text-white/40 hover:text-white/80 transition-colors p-1 rounded hover:bg-white/10"
-                            title="Clear Logs">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div>
-                    <div id="log-container"
-                        class="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-1 custom-scrollbar">
-                        <div class="text-white/30 italic">System ready...</div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- LOGIC SCRIPT -->
     <script src="script.js"></script>
+    <script>
+        // Re-initialize Lucide icons after load just effectively
+        window.addEventListener('load', () => lucide.createIcons());
+    </script>
 </body>
 
 </html>

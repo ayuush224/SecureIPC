@@ -432,15 +432,15 @@ function renderQueue(elementId, heap) {
     const container = document.getElementById(elementId);
     container.innerHTML = '';
     if (heap.length === 0) {
-        container.innerHTML = '<div class="text-center text-sm text-white/40 italic py-8">Queue is empty</div>';
+        container.innerHTML = '<div style="padding:10px; text-align:center; opacity:0.3; font-size:10px;">EMPTY</div>';
         return;
     }
     heap.forEach(priority => {
         const div = document.createElement('div');
-        div.className = "bg-white/10 rounded-lg p-3 flex items-center justify-between group hover:bg-white/20 transition-colors animate-in fade-in slide-in-from-bottom-2 duration-300";
+        div.className = "queue-item";
         div.innerHTML = `
-            <span class="text-sm font-medium text-white/70">Process</span>
-            <span class="font-bold text-white bg-white/20 px-2 py-0.5 rounded text-sm">P: ${priority}</span>
+            <span>Process</span>
+            <span class="p-badge">P: ${priority}</span>
         `;
         container.appendChild(div);
     });
@@ -471,7 +471,7 @@ function renderState(state) {
     bufferContainer.innerHTML = '';
     for (let i = 0; i < state.bufferSize; i++) {
         const div = document.createElement('div');
-        div.className = `flex-1 border-r border-black/20 last:border-0 transition-all duration-500 ${i < used ? 'bg-indigo-400 opacity-100' : 'bg-white opacity-20'}`;
+        div.className = `buffer-segment ${i < used ? 'active' : 'inactive'}`;
         bufferContainer.appendChild(div);
     }
 
@@ -479,13 +479,14 @@ function renderState(state) {
     const logContainer = document.getElementById('log-container');
     logContainer.innerHTML = '';
     if (state.logs.length === 0) {
-        logContainer.innerHTML = '<div class="text-white/30 italic">System ready...</div>';
+        logContainer.innerHTML = '<div class="log-entry" style="opacity:0.5">System ready...</div>';
     } else {
         state.logs.forEach(log => {
             const div = document.createElement('div');
-            const isError = log.startsWith('Error');
-            div.className = `border-l-2 pl-2 py-0.5 hover:bg-white/5 transition-colors ${isError ? 'text-red-400 border-red-500/50' : 'text-white/80 border-white/10'}`;
-            div.innerHTML = `<span class="opacity-50 mr-2">[${new Date().toLocaleTimeString().split(' ')[0]}]</span>${log}`;
+            const isError = log.startsWith('Error') || log.includes('timed out');
+            div.className = `log-entry ${isError ? 'log-err' : ''}`;
+            const t = new Date().toLocaleTimeString().split(' ')[0];
+            div.innerHTML = `<span class="log-time">[${t}]</span>${log}`;
             logContainer.appendChild(div);
         });
         // Auto scroll
